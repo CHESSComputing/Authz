@@ -249,7 +249,7 @@ func KAuthHandler(c *gin.Context) {
 		}
 
 		tmpl := makeTmpl(c, "Success")
-		tmpl["Content"] = fmt.Sprintf("<pre>%s</pre>", string(data))
+		tmpl["Content"] = fmt.Sprintf("<br/>Generated token:<br/><pre>%s</pre>", string(data))
 		page := utils.TmplPage(StaticFs, "success.tmpl", tmpl)
 		top := utils.TmplPage(StaticFs, "top.tmpl", tmpl)
 		bottom := utils.TmplPage(StaticFs, "bottom.tmpl", tmpl)
