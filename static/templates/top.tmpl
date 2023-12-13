@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<!-- top.tmpl -->
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head profile="http://www.w3.org/2005/11/profile">
+    <title>CHESS Authentication service</title>
+
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Language" content="en-us" />
+    <meta http-equiv="Content-Script-Type" content="text/javascript" />
+    <meta http-equiv="imagetoolbar" content="no" />
+    <meta name="author" content="Valentin Kuznetsov (vkuznet at gmail dot com)" />
+    <meta name="MSSmartTagsPreventParsing" content="true" />
+    <meta name="ROBOTS" content="ALL" />
+    <meta name="Copyright" content="(CC) 2019, CHESS collaboration." />
+    <meta name="Rating" content="General" />
+
+    <link rel="stylesheet" type="text/css" href="{{.Base}}/css/top.css"/>
+    <!-- Kube CSS: https://imperavi.com/superkube/ -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/superkube@latest/dist/superkube.min.css">
+    <!--
+    <link rel="stylesheet" href="{{.Base}}/css/superkube.min.css">
+    -->
+
+    <script type="text/javascript" src="{{.Base}}/js/utils.js"></script>
+
+</head>
+<body class="yui-skin-sam">
+
+<header>
+    <div class="grid">
+        <div class="column column-4">
+            <!--
+            <a href="{{.Base}}/">
+                <img src="{{.Base}}/images/chess-logo.png" style="width:50px;">
+            </a>
+            -->
+        </div>
+        <div class="column column-4">
+            <b class="is-logo">CHESS Authentication Service</b>
+        </div>
+        <div class="column column-4">
+            <!--
+            {{if eq .User ""}}
+                <a href="{{.Base}}/login" class="button button-light button-small">Login</a>
+            {{else}}
+                <span class="white margin-10">{{.User}}</span>
+                &nbsp; | &nbsp;
+                <a href="{{.Base}}/logout" class="button button-light button-small">Logout</a>
+            {{end}}
+            -->
+        </div>
+    </div>
+
+</header>
+
+
+<!-- end of top.tmpl -->

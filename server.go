@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"log"
+	"net/http"
+	"os"
 
 	srvConfig "github.com/CHESSComputing/common/config"
 	jwt "github.com/dgrijalva/jwt-go"
@@ -14,6 +17,11 @@ import (
 	"github.com/go-oauth2/oauth2/v4/models"
 	"github.com/go-oauth2/oauth2/v4/server"
 	"github.com/go-oauth2/oauth2/v4/store"
+
+	// kerberos auth
+	"gopkg.in/jcmturner/gokrb5.v7/keytab"
+	"gopkg.in/jcmturner/gokrb5.v7/service"
+	"gopkg.in/jcmturner/gokrb5.v7/spnego"
 )
 
 // examples: https://go.dev/doc/tutorial/web-service-gin
@@ -22,6 +30,15 @@ import (
 var _DB *gorm.DB
 
 var _oauthServer *server.Server
+
+func loginHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		//         ctx := context.WithValue(c.Request.Context(), "GinContextKey", c)
+		//         c.Request = c.Request.WithContext(ctx)
+		LoginHandler(c.Writer, c.Request)
+		c.Next()
+	}
+}
 
 // helper function to setup our server router
 func setupRouter() *gin.Engine {
@@ -36,6 +53,34 @@ func setupRouter() *gin.Engine {
 	// POST routes
 	r.POST("/user", RegistryUserHandler)
 	r.POST("/oauth/authorize", AuthzHandler)
+
+	// kerberos routes
+	//     router.HandleFunc(basePath("/auth"), KAuthHandler).Methods("GET", "POST")
+	r.GET("/kauth", KAuthHandler)
+	r.POST("/kauth", KAuthHandler)
+
+	// configure kerberos auth
+	if srvConfig.Config.Kerberos.Keytab != "" {
+		kt, err := keytab.Load(srvConfig.Config.Kerberos.Keytab)
+		if err != nil {
+			log.Fatal(err)
+		}
+		l := log.New(os.Stderr, "GOKRB5 Service: ", log.Ldate|log.Ltime|log.Lshortfile)
+		h := http.HandlerFunc(LoginHandler)
+		http.Handle("/", spnego.SPNEGOKRB5Authenticate(h, kt, service.Logger(l)))
+	} else {
+		r.GET("/", loginHandler())
+	}
+
+	// static files
+	for _, dir := range []string{"js", "css", "images"} {
+		filesFS, err := fs.Sub(StaticFs, "static/"+dir)
+		if err != nil {
+			panic(err)
+		}
+		m := fmt.Sprintf("%s/%s", srvConfig.Config.Authz.WebServer.Base, dir)
+		r.StaticFS(m, http.FS(filesFS))
+	}
 
 	return r
 }
