@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	srvConfig "github.com/CHESSComputing/common/config"
-	utils "github.com/CHESSComputing/common/utils"
+	srvConfig "github.com/CHESSComputing/golib/config"
+	utils "github.com/CHESSComputing/golib/utils"
 	"github.com/gin-gonic/gin"
 	oauth2 "github.com/go-oauth2/oauth2/v4"
 	"github.com/go-session/session"
@@ -112,7 +112,7 @@ func validateUser(c *gin.Context) (oauth2.GrantType, *oauth2.TokenGenerateReques
 	var gt oauth2.GrantType
 	gt = "client_credentials"
 	tgr := &oauth2.TokenGenerateRequest{
-		ClientID:     srvConfig.Config.Authz.ClientId,
+		ClientID:     srvConfig.Config.Authz.ClientID,
 		ClientSecret: srvConfig.Config.Authz.ClientSecret,
 		Request:      c.Request,
 	}
@@ -144,6 +144,22 @@ func TokenHandler(c *gin.Context) {
 		log.Println("ERROR: oauth server error", err)
 		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 	}
+	/*
+		// set userID
+		r := c.Request
+		cookie, err := r.Cookie("auth-session")
+		// TODO: data is map[string]interface{}
+		if err == nil {
+			// our cookie is set as following
+			//     msg := fmt.Sprintf("%s-%v", creds.UserName(), creds.Authenticated())
+			//     cookie := http.Cookie{Name: "auth-session", Value: msg, Expires: expiration}
+			//     http.SetCookie(w, &cookie)
+			value := cookie.Value
+			arr := strings.Split(value, "-")
+			tokenInfo.SetUserID(arr[0])
+		}
+	*/
+
 	// set custom token attributes
 	duration := srvConfig.Config.Authz.TokenExpires
 	if duration > 0 {

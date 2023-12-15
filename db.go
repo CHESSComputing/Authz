@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	srvConfig "github.com/CHESSComputing/common/config"
+	srvConfig "github.com/CHESSComputing/golib/config"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	srvConfig "github.com/CHESSComputing/common/config"
+	srvConfig "github.com/CHESSComputing/golib/config"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -103,12 +103,12 @@ func Server() {
 	// generate jwt access token
 	manager.MapAccessGenerate(
 		generates.NewJWTAccessGenerate(
-			"", []byte(srvConfig.Config.Authz.ClientId), jwt.SigningMethodHS512))
+			"", []byte(srvConfig.Config.Authz.ClientID), jwt.SigningMethodHS512))
 	//     manager.MapAccessGenerate(generates.NewAccessGenerate())
 
 	clientStore := store.NewClientStore()
-	clientStore.Set(srvConfig.Config.Authz.ClientId, &models.Client{
-		ID:     srvConfig.Config.Authz.ClientId,
+	clientStore.Set(srvConfig.Config.Authz.ClientID, &models.Client{
+		ID:     srvConfig.Config.Authz.ClientID,
 		Secret: srvConfig.Config.Authz.ClientSecret,
 		Domain: srvConfig.Config.Authz.Domain,
 	})

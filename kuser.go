@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	srvConfig "github.com/CHESSComputing/common/config"
+	srvConfig "github.com/CHESSComputing/golib/config"
 	"gopkg.in/jcmturner/gokrb5.v7/client"
 	"gopkg.in/jcmturner/gokrb5.v7/config"
 	"gopkg.in/jcmturner/gokrb5.v7/credentials"
