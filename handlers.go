@@ -46,12 +46,13 @@ func handleError(c *gin.Context, msg string, err error) {
 }
 
 // helper function to get valid token
-func validToken(c *gin.Context) (oauth2.GrantType, *oauth2.TokenGenerateRequest, error) {
+func validToken(c *gin.Context, user string) (oauth2.GrantType, *oauth2.TokenGenerateRequest, error) {
 	var gt oauth2.GrantType
 	gt = "client_credentials"
 	tgr := &oauth2.TokenGenerateRequest{
 		ClientID:     srvConfig.Config.Authz.ClientID,
 		ClientSecret: srvConfig.Config.Authz.ClientSecret,
+		UserID:       user,
 		Request:      c.Request,
 	}
 	return gt, tgr, nil
@@ -67,6 +68,10 @@ func TokenHandler(c *gin.Context) {
 		}
 	*/
 
+	r := c.Request
+	scope := r.URL.Query().Get("scope")
+	user := r.URL.Query().Get("user")
+
 	// here is the same logic of _oauthServer.HandleTokenRequest
 	// TODO: we may change token attributes as expires, scope, etc.
 	// we expect to receive: oauth2.GrantType, *oauth2.TokenGenerateRequest, error
@@ -75,6 +80,13 @@ func TokenHandler(c *gin.Context) {
 		log.Println("ERROR: oauth server error", err)
 		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 	}
+	if user != "" {
+		tokenGenRequest.UserID = user
+	}
+	if scope != "" {
+		tokenGenRequest.Scope = scope
+	}
+
 	log.Printf("grantType %+v tokenGenRequest %+v", grantType, tokenGenRequest)
 
 	tokenInfo, err := _oauthServer.GetAccessToken(c, grantType, tokenGenRequest)
@@ -82,21 +94,6 @@ func TokenHandler(c *gin.Context) {
 		log.Println("ERROR: oauth server error", err)
 		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 	}
-	/*
-		// set userID
-		r := c.Request
-		cookie, err := r.Cookie("auth-session")
-		// TODO: data is map[string]interface{}
-		if err == nil {
-			// our cookie is set as following
-			//     msg := fmt.Sprintf("%s-%v", creds.UserName(), creds.Authenticated())
-			//     cookie := http.Cookie{Name: "auth-session", Value: msg, Expires: expiration}
-			//     http.SetCookie(w, &cookie)
-			value := cookie.Value
-			arr := strings.Split(value, "-")
-			tokenInfo.SetUserID(arr[0])
-		}
-	*/
 
 	// set custom token attributes
 	duration := srvConfig.Config.Authz.TokenExpires
@@ -204,7 +201,7 @@ func ClientAuthHandler(c *gin.Context) {
 	}
 
 	// generate in response valid token
-	gt, treq, err := validToken(c)
+	gt, treq, err := validToken(c, rec.User)
 	if err != nil {
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
 		c.JSON(http.StatusBadRequest, rec)
@@ -235,7 +232,9 @@ func KAuthHandler(c *gin.Context) {
 	/*
 		// if in test mode or do not use keytab
 		if srvConfig.Config.Kerberos.Keytab == "" || srvConfig.Config.Authz.TestMode {
-			gt, treq, err := validToken(c)
+			// TODO: get user from cookie
+			user := "bla"
+			gt, treq, err := validToken(c, user)
 			if err != nil {
 				msg := "wrong user credentials"
 				handleError(c, msg, err)
