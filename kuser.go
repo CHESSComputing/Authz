@@ -1,13 +1,12 @@
 package main
 
+// module to handle kerberos access
+//
+// Copyright (c) 2023 - Valentin Kuznetsov <vkuznet@gmail.com>
+//
+
 import (
-	"errors"
-	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
-	"os"
-	"strings"
 
 	srvConfig "github.com/CHESSComputing/golib/config"
 	"gopkg.in/jcmturner/gokrb5.v7/client"
@@ -15,11 +14,7 @@ import (
 	"gopkg.in/jcmturner/gokrb5.v7/credentials"
 )
 
-// module to handle kerberos access
-//
-// Copyright (c) 2023 - Valentin Kuznetsov <vkuznet@gmail.com>
-//
-
+/*
 // helper function to extract username from auth-session cookie
 func username(r *http.Request) (string, error) {
 	if srvConfig.Config.Authz.TestMode {
@@ -58,6 +53,7 @@ func kuserFromCache(cacheFile string) (*credentials.Credentials, error) {
 	return client.Credentials, nil
 
 }
+*/
 
 // helper function to perform kerberos authentication
 func kuser(user, password string) (*credentials.Credentials, error) {
@@ -75,6 +71,7 @@ func kuser(user, password string) (*credentials.Credentials, error) {
 	return client.Credentials, nil
 }
 
+/*
 // authentication function
 func auth(r *http.Request) error {
 	_, err := username(r)
@@ -85,9 +82,10 @@ func auth(r *http.Request) error {
 func getUserCredentials(r *http.Request) (*credentials.Credentials, error) {
 	var msg string
 	// user didn't use web interface, we switch to POST form
-	name := r.FormValue("name")
+	//     name := r.FormValue("name")
 	ticket := r.FormValue("ticket")
-	tmpFile, err := ioutil.TempFile("/tmp", name)
+	fname := fmt.Sprintf("krb-%d", time.Now().UnixNano())
+	tmpFile, err := ioutil.TempFile("/tmp", fname)
 	if err != nil {
 		msg = fmt.Sprintf("Unable to create tempfile: %v", err)
 		log.Printf("ERROR: %s", msg)
@@ -114,3 +112,5 @@ func getUserCredentials(r *http.Request) (*credentials.Credentials, error) {
 	}
 	return creds, nil
 }
+
+*/

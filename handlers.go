@@ -3,14 +3,18 @@ package main
 import (
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
+	authz "github.com/CHESSComputing/golib/authz"
 	srvConfig "github.com/CHESSComputing/golib/config"
-	utils "github.com/CHESSComputing/golib/utils"
+	server "github.com/CHESSComputing/golib/server"
+	services "github.com/CHESSComputing/golib/services"
 	"github.com/gin-gonic/gin"
 	oauth2 "github.com/go-oauth2/oauth2/v4"
 	"github.com/go-session/session"
@@ -30,29 +34,13 @@ type UserParams struct {
 //go:embed static
 var StaticFs embed.FS
 
-// helper function to make initial template struct
-func makeTmpl(c *gin.Context, title string) utils.TmplRecord {
-	tmpl := make(utils.TmplRecord)
-	tmpl["Title"] = title
-	tmpl["User"] = ""
-	if user, ok := c.Get("user"); ok {
-		tmpl["User"] = user
-	}
-	tmpl["Base"] = srvConfig.Config.Frontend.WebServer.Base
-	tmpl["ServerInfo"] = srvConfig.Info()
-	tmpl["Top"] = utils.TmplPage(StaticFs, "top.tmpl", tmpl)
-	tmpl["Bottom"] = utils.TmplPage(StaticFs, "bottom.tmpl", tmpl)
-	tmpl["StartTime"] = time.Now().Unix()
-	return tmpl
-}
-
 // helper function to handle http server errors
 func handleError(c *gin.Context, msg string, err error) {
 	w := c.Writer
 	log.Printf("ERROR: %v\n", err)
-	tmpl := makeTmpl(c, "Error")
+	tmpl := server.MakeTmpl(StaticFs, "Error")
 	tmpl["Message"] = strings.ToTitle(msg)
-	page := utils.TmplPage(StaticFs, "error.tmpl", tmpl)
+	page := server.TmplPage(StaticFs, "error.tmpl", tmpl)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(page))
 }
@@ -107,6 +95,8 @@ func RegistryUserHandler(c *gin.Context) {
 	}
 }
 
+// TODO I need either to change name or logic since so far we create valid token
+// without validating any user
 // helper function to validate user and generate token
 func validateUser(c *gin.Context) (oauth2.GrantType, *oauth2.TokenGenerateRequest, error) {
 	var gt oauth2.GrantType
@@ -217,17 +207,74 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	//     tmpl := makeTmpl(c, "Login")
-	tmpl := make(utils.TmplRecord)
+	tmpl := server.MakeTmpl(StaticFs, "Login")
 	tmpl["Title"] = "Login"
 	tmpl["Base"] = srvConfig.Config.Frontend.WebServer.Base
 	tmpl["ServerInfo"] = srvConfig.Info()
-	top := utils.TmplPage(StaticFs, "top.tmpl", tmpl)
-	bottom := utils.TmplPage(StaticFs, "bottom.tmpl", tmpl)
+	top := server.TmplPage(StaticFs, "top.tmpl", tmpl)
+	bottom := server.TmplPage(StaticFs, "bottom.tmpl", tmpl)
 	tmpl["StartTime"] = time.Now().Unix()
-	page := utils.TmplPage(StaticFs, "login.tmpl", tmpl)
+	page := server.TmplPage(StaticFs, "login.tmpl", tmpl)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(top + page + bottom))
+}
+
+// ClientAuthHandler provides kerberos authentication for CLI requests
+// func ClientAuthHandler(w http.ResponseWriter, r *http.Request) {
+func ClientAuthHandler(c *gin.Context) {
+	r := c.Request
+
+	var rec authz.Kerberos
+	defer r.Body.Close()
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		rec := services.Response("Authz", http.StatusBadRequest, services.ReaderError, err)
+		c.JSON(http.StatusBadRequest, rec)
+		return
+	}
+	err = json.Unmarshal(data, &rec)
+	if err != nil {
+		rec := services.Response("Authz", http.StatusBadRequest, services.UnmarshalError, err)
+		c.JSON(http.StatusBadRequest, rec)
+		return
+	}
+	creds, err := rec.Credentials()
+	if err != nil || creds.Expired() {
+		rec := services.Response("Authz", http.StatusBadRequest, services.CredentialsError, err)
+		c.JSON(http.StatusBadRequest, rec)
+		return
+	}
+	if creds.Expired() {
+		rec := services.Response("Authz", http.StatusBadRequest, services.CredentialsError, errors.New("Expired token"))
+		c.JSON(http.StatusBadRequest, rec)
+		return
+	}
+	if creds.UserName() != rec.User {
+		rec := services.Response("Authz", http.StatusBadRequest, services.CredentialsError, errors.New("User credentials error"))
+		c.JSON(http.StatusBadRequest, rec)
+		return
+	}
+
+	// generate in response valid token
+	gt, treq, err := validateUser(c)
+	if err != nil {
+		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
+		c.JSON(http.StatusBadRequest, rec)
+		return
+	}
+	tokenInfo, err := _oauthServer.GetAccessToken(c, gt, treq)
+	if err != nil {
+		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
+		c.JSON(http.StatusBadRequest, rec)
+		return
+	}
+	// set custom token attributes
+	duration := srvConfig.Config.Authz.TokenExpires
+	if duration > 0 {
+		tokenInfo.SetCodeExpiresIn(time.Duration(duration))
+	}
+	tmap := _oauthServer.GetTokenData(tokenInfo)
+	c.JSON(200, tmap)
 }
 
 // KAuthHandler provides KAuth authentication to our app
@@ -237,41 +284,43 @@ func KAuthHandler(c *gin.Context) {
 	w := c.Writer
 	r := c.Request
 
-	// if in test mode or do not use keytab
-	if srvConfig.Config.Kerberos.Keytab == "" || srvConfig.Config.Authz.TestMode {
-		gt, treq, err := validateUser(c)
-		if err != nil {
-			msg := "wrong user credentials"
-			handleError(c, msg, err)
-			return
-		}
-		tokenInfo, err := _oauthServer.GetAccessToken(c, gt, treq)
-		if err != nil {
-			msg := "wrong access token"
-			handleError(c, msg, err)
-			return
-		}
-		// set custom token attributes
-		duration := srvConfig.Config.Authz.TokenExpires
-		if duration > 0 {
-			tokenInfo.SetCodeExpiresIn(time.Duration(duration))
-		}
-		tmap := _oauthServer.GetTokenData(tokenInfo)
-		data, err := json.MarshalIndent(tmap, "", "  ")
-		if err != nil {
-			msg := "fail to marshal token map"
-			handleError(c, msg, err)
-			return
-		}
+	/*
+		// if in test mode or do not use keytab
+		if srvConfig.Config.Kerberos.Keytab == "" || srvConfig.Config.Authz.TestMode {
+			gt, treq, err := validateUser(c)
+			if err != nil {
+				msg := "wrong user credentials"
+				handleError(c, msg, err)
+				return
+			}
+			tokenInfo, err := _oauthServer.GetAccessToken(c, gt, treq)
+			if err != nil {
+				msg := "wrong access token"
+				handleError(c, msg, err)
+				return
+			}
+			// set custom token attributes
+			duration := srvConfig.Config.Authz.TokenExpires
+			if duration > 0 {
+				tokenInfo.SetCodeExpiresIn(time.Duration(duration))
+			}
+			tmap := _oauthServer.GetTokenData(tokenInfo)
+			data, err := json.MarshalIndent(tmap, "", "  ")
+			if err != nil {
+				msg := "fail to marshal token map"
+				handleError(c, msg, err)
+				return
+			}
 
-		tmpl := makeTmpl(c, "Success")
-		tmpl["Content"] = fmt.Sprintf("<br/>Generated token:<br/><pre>%s</pre>", string(data))
-		page := utils.TmplPage(StaticFs, "success.tmpl", tmpl)
-		top := utils.TmplPage(StaticFs, "top.tmpl", tmpl)
-		bottom := utils.TmplPage(StaticFs, "bottom.tmpl", tmpl)
-		w.Write([]byte(top + page + bottom))
-		return
-	}
+			tmpl := server.MakeTmpl(StaticFs, "Success")
+			tmpl["Content"] = fmt.Sprintf("<br/>Generated token:<br/><pre>%s</pre>", string(data))
+			page := server.TmplPage(StaticFs, "success.tmpl", tmpl)
+			top := server.TmplPage(StaticFs, "top.tmpl", tmpl)
+			bottom := server.TmplPage(StaticFs, "bottom.tmpl", tmpl)
+			w.Write([]byte(top + page + bottom))
+			return
+		}
+	*/
 
 	// First, we need to get the value of the `code` query param
 	err := r.ParseForm()
@@ -308,7 +357,5 @@ func KAuthHandler(c *gin.Context) {
 	cookie := http.Cookie{Name: "auth-session", Value: msg, Expires: expiration}
 	http.SetCookie(w, &cookie)
 
-	// TODO: I need to generate valid token
-	//     w.Header().Set("Location", "/data")
 	w.WriteHeader(http.StatusFound)
 }

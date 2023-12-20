@@ -51,13 +51,14 @@ func setupRouter() *gin.Engine {
 	r.GET("/oauth/token", TokenHandler)
 
 	// POST routes
-	r.POST("/user", RegistryUserHandler)
-	r.POST("/oauth/authorize", AuthzHandler)
+	//     r.POST("/user", RegistryUserHandler)
+	//     r.POST("/oauth/authorize", AuthzHandler)
 
 	// kerberos routes
 	//     router.HandleFunc(basePath("/auth"), KAuthHandler).Methods("GET", "POST")
 	r.GET("/kauth", KAuthHandler)
 	r.POST("/kauth", KAuthHandler)
+	r.POST("/oauth/authorize", ClientAuthHandler)
 
 	// configure kerberos auth
 	if srvConfig.Config.Kerberos.Keytab != "" {
