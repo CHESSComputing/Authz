@@ -45,6 +45,7 @@ func handleError(c *gin.Context, msg string, err error) {
 	w.Write([]byte(page))
 }
 
+/*
 // UsersHandler provides access to GET /sites end-point
 func UsersHandler(c *gin.Context) {
 	var params DocsParams
@@ -61,7 +62,9 @@ func UsersHandler(c *gin.Context) {
 		c.JSON(400, gin.H{"status": "fail", "error": err.Error()})
 	}
 }
+*/
 
+/*
 // UserRequest represents user form request
 type UserRequest struct {
 	Login     string `json:"login"`
@@ -94,11 +97,10 @@ func RegistryUserHandler(c *gin.Context) {
 		c.JSON(400, gin.H{"status": "fail", "error": err.Error()})
 	}
 }
+*/
 
-// TODO I need either to change name or logic since so far we create valid token
-// without validating any user
-// helper function to validate user and generate token
-func validateUser(c *gin.Context) (oauth2.GrantType, *oauth2.TokenGenerateRequest, error) {
+// helper function to get valid token
+func validToken(c *gin.Context) (oauth2.GrantType, *oauth2.TokenGenerateRequest, error) {
 	var gt oauth2.GrantType
 	gt = "client_credentials"
 	tgr := &oauth2.TokenGenerateRequest{
@@ -256,7 +258,7 @@ func ClientAuthHandler(c *gin.Context) {
 	}
 
 	// generate in response valid token
-	gt, treq, err := validateUser(c)
+	gt, treq, err := validToken(c)
 	if err != nil {
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
 		c.JSON(http.StatusBadRequest, rec)
@@ -287,7 +289,7 @@ func KAuthHandler(c *gin.Context) {
 	/*
 		// if in test mode or do not use keytab
 		if srvConfig.Config.Kerberos.Keytab == "" || srvConfig.Config.Authz.TestMode {
-			gt, treq, err := validateUser(c)
+			gt, treq, err := validToken(c)
 			if err != nil {
 				msg := "wrong user credentials"
 				handleError(c, msg, err)
