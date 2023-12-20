@@ -47,15 +47,10 @@ func setupRouter() *gin.Engine {
 	r := gin.Default()
 
 	// GET routes
-	//     r.GET("/user/:login", UsersHandler)
 	r.GET("/oauth/token", TokenHandler)
+	r.GET("/kauth", KAuthHandler)
 
 	// POST routes
-	//     r.POST("/user", RegistryUserHandler)
-	//     r.POST("/oauth/authorize", AuthzHandler)
-
-	// kerberos routes
-	r.GET("/kauth", KAuthHandler)
 	r.POST("/kauth", KAuthHandler)
 	r.POST("/oauth/authorize", ClientAuthHandler)
 
