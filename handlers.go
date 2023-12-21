@@ -48,12 +48,15 @@ func handleError(c *gin.Context, msg string, err error) {
 // helper function to get valid token
 func validToken(c *gin.Context, user string) (oauth2.GrantType, *oauth2.TokenGenerateRequest, error) {
 	var gt oauth2.GrantType
-	gt = "client_credentials"
+	gt = oauth2.ClientCredentials
+	//     gt = oauth2.PasswordCredentials
+	duration := srvConfig.Config.Authz.TokenExpires
 	tgr := &oauth2.TokenGenerateRequest{
-		ClientID:     srvConfig.Config.Authz.ClientID,
-		ClientSecret: srvConfig.Config.Authz.ClientSecret,
-		UserID:       user,
-		Request:      c.Request,
+		ClientID:       srvConfig.Config.Authz.ClientID,
+		ClientSecret:   srvConfig.Config.Authz.ClientSecret,
+		UserID:         user,
+		AccessTokenExp: time.Duration(duration),
+		Request:        c.Request,
 	}
 	return gt, tgr, nil
 }
