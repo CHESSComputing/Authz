@@ -29,6 +29,7 @@ import (
 // _DB defines gorm DB pointer
 var _DB *gorm.DB
 
+var _routes gin.RoutesInfo
 var _oauthServer *server.Server
 
 func loginHandler() gin.HandlerFunc {
@@ -47,6 +48,7 @@ func setupRouter() *gin.Engine {
 	r := gin.Default()
 
 	// GET routes
+	r.GET("/apis", ApisHandler)
 	r.GET("/oauth/token", TokenHandler)
 	r.GET("/kauth", KAuthHandler)
 
@@ -76,7 +78,7 @@ func setupRouter() *gin.Engine {
 		m := fmt.Sprintf("%s/%s", srvConfig.Config.Authz.WebServer.Base, dir)
 		r.StaticFS(m, http.FS(filesFS))
 	}
-
+	_routes = r.Routes()
 	return r
 }
 
