@@ -61,11 +61,6 @@ func validToken(c *gin.Context, user string) (oauth2.GrantType, *oauth2.TokenGen
 	return gt, tgr, nil
 }
 
-// ApisHandler provides all server routes
-func ApisHandler(c *gin.Context) {
-	server.ApisHandler(c, _routes)
-}
-
 // TokenHandler provides access to GET /oauth/token end-point
 func TokenHandler(c *gin.Context) {
 	/*

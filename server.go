@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"io/fs"
 	"log"
 	"net/http"
 	"os"
 
 	srvConfig "github.com/CHESSComputing/golib/config"
+	srvServer "github.com/CHESSComputing/golib/server"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -29,13 +29,11 @@ import (
 // _DB defines gorm DB pointer
 var _DB *gorm.DB
 
-var _routes gin.RoutesInfo
 var _oauthServer *server.Server
 
+// helper function to define our login handler
 func loginHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		//         ctx := context.WithValue(c.Request.Context(), "GinContextKey", c)
-		//         c.Request = c.Request.WithContext(ctx)
 		LoginHandler(c.Writer, c.Request)
 		c.Next()
 	}
@@ -43,20 +41,13 @@ func loginHandler() gin.HandlerFunc {
 
 // helper function to setup our server router
 func setupRouter() *gin.Engine {
-	// Disable Console Color
-	// gin.DisableConsoleColor()
-	r := gin.Default()
 
-	// GET routes
-	r.GET("/apis", ApisHandler)
-	r.GET("/oauth/token", TokenHandler)
-	r.GET("/kauth", KAuthHandler)
-
-	// POST routes
-	r.POST("/kauth", KAuthHandler)
-	r.POST("/oauth/authorize", ClientAuthHandler)
-
-	// configure kerberos auth
+	routes := []srvServer.Route{
+		srvServer.Route{Method: "GET", Path: "/oauth/token", Handler: TokenHandler, Authorized: false},
+		srvServer.Route{Method: "GET", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
+		srvServer.Route{Method: "POST", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
+		srvServer.Route{Method: "POST", Path: "/oauth/authorize", Handler: ClientAuthHandler, Authorized: false},
+	}
 	if srvConfig.Config.Kerberos.Keytab != "" {
 		kt, err := keytab.Load(srvConfig.Config.Kerberos.Keytab)
 		if err != nil {
@@ -66,22 +57,17 @@ func setupRouter() *gin.Engine {
 		h := http.HandlerFunc(LoginHandler)
 		http.Handle("/", spnego.SPNEGOKRB5Authenticate(h, kt, service.Logger(l)))
 	} else {
-		r.GET("/", loginHandler())
+		routes = append(routes,
+			srvServer.Route{Method: "GET", Path: "/", Handler: loginHandler(), Authorized: false})
 	}
-
-	// static files
-	for _, dir := range []string{"js", "css", "images"} {
-		filesFS, err := fs.Sub(StaticFs, "static/"+dir)
-		if err != nil {
-			panic(err)
-		}
-		m := fmt.Sprintf("%s/%s", srvConfig.Config.Authz.WebServer.Base, dir)
-		r.StaticFS(m, http.FS(filesFS))
-	}
-	_routes = r.Routes()
+	r := srvServer.Router(routes, StaticFs, "static",
+		srvConfig.Config.Authz.WebServer.Base,
+		srvConfig.Config.Authz.WebServer.Verbose,
+	)
 	return r
 }
 
+// Server defines our HTTP server
 func Server() {
 	db, err := initDB("sqlite")
 	if err != nil {
