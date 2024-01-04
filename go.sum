@@ -1,4 +1,6 @@
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
+github.com/CHESSComputing/golib v0.0.1 h1:sOA18RRYWRVfL6Ipn9DaxaQ3++OM80dk44I7pnQnY/8=
+github.com/CHESSComputing/golib v0.0.1/go.mod h1:63ahrWU7n3GQei6r3v0ICjKQN8g1aMYp4lOmvlZ9Wck=
 github.com/ajg/form v1.5.1 h1:t9c7v8JUKu/XxOGBU0yjNpaMloxGEJhUkqFRq0ibGeU=
 github.com/ajg/form v1.5.1/go.mod h1:uL1WgH+h2mgNtvBq0339dVnzXdBETtL2LeUXaIv25UY=
 github.com/andybalholm/brotli v1.0.4 h1:V7DdXeJtZscaqfNuAdSRuRFzuiKlHSC/Zh3zl9qY3JY=
