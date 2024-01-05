@@ -17,7 +17,6 @@ import (
 	services "github.com/CHESSComputing/golib/services"
 	"github.com/gin-gonic/gin"
 	oauth2 "github.com/go-oauth2/oauth2/v4"
-	"github.com/go-session/session"
 	credentials "gopkg.in/jcmturner/gokrb5.v7/credentials"
 )
 
@@ -91,83 +90,12 @@ func TokenHandler(c *gin.Context) {
 	scope := r.URL.Query().Get("scope")
 	user := r.URL.Query().Get("user")
 	tmap, err := tokenMap(user, scope, "client_credentials", "Authz")
+	log.Println("token map", tmap, err)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
 	c.JSON(http.StatusOK, tmap)
-
-	/*
-		// here is the same logic of _oauthServer.HandleTokenRequest
-		// TODO: we may change token attributes as expires, scope, etc.
-		// we expect to receive: oauth2.GrantType, *oauth2.TokenGenerateRequest, error
-		grantType, tokenGenRequest, err := _oauthServer.ValidationTokenRequest(c.Request)
-		if err != nil {
-			log.Println("ERROR: oauth server error", err)
-			http.Error(c.Writer, err.Error(), http.StatusBadRequest)
-		}
-		if user != "" {
-			tokenGenRequest.UserID = user
-		}
-		if scope != "" {
-			tokenGenRequest.Scope = scope
-		}
-
-		log.Printf("grantType %+v tokenGenRequest %+v", grantType, tokenGenRequest)
-
-		tokenInfo, err := _oauthServer.GetAccessToken(c, grantType, tokenGenRequest)
-		if err != nil {
-			log.Println("ERROR: oauth server error", err)
-			http.Error(c.Writer, err.Error(), http.StatusBadRequest)
-		}
-
-		// set custom token attributes
-		duration := srvConfig.Config.Authz.TokenExpires
-		if duration > 0 {
-			tokenInfo.SetCodeExpiresIn(time.Duration(duration))
-		}
-		data := _oauthServer.GetTokenData(tokenInfo)
-
-		// encode given token token data back to http response writer
-		enc := json.NewEncoder(c.Writer)
-		enc.SetIndent("", "  ")
-		enc.Encode(data)
-	*/
-}
-
-// AuthzHandler provides access to POST /oauth/authorize end-point
-func AuthzHandler(c *gin.Context) {
-	store, err := session.Start(c.Request.Context(), c.Writer, c.Request)
-	if err != nil {
-		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	var params UserParams
-	if err := c.BindJSON(&params); err == nil {
-		user := User{
-			LOGIN:    params.Login,
-			PASSWORD: params.Password,
-		}
-		if u, err := getUser(_DB, user); err == nil {
-			store.Set("UserID", u.ID)
-			store.Save()
-
-			err = _oauthServer.HandleAuthorizeRequest(c.Writer, c.Request)
-			if err != nil {
-				log.Println("ERROR: oauth server error", err)
-				http.Error(c.Writer, err.Error(), http.StatusBadRequest)
-			}
-			c.Writer.Header().Set("Location", "/oauth2/authorize")
-			if srvConfig.Config.Authz.WebServer.Verbose > 0 {
-				log.Println("INFO: found user", u)
-			}
-			c.JSON(http.StatusOK, gin.H{"status": "ok", "uid": u.ID})
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"status": "fail", "error": err.Error()})
-		}
-	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "fail", "error": err.Error()})
-	}
 }
 
 // LoginHandler handlers Login requests
@@ -226,36 +154,8 @@ func ClientAuthHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, rec)
 		return
 	}
-
-	/*
-		// generate in response valid token
-		grantType, tokenGenRequest, err := validToken(c, rec.User, rec.Scope)
-		//     grantType, tokenGenRequest, err := _oauthServer.ValidationTokenRequest(c.Request)
-		if err != nil {
-			rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
-			c.JSON(http.StatusBadRequest, rec)
-			return
-		}
-		// add token attributes
-		log.Printf("grantType %+v tokenGenRequest %+v", grantType, tokenGenRequest)
-		tokenInfo, err := _oauthServer.GetAccessToken(c, grantType, tokenGenRequest)
-		if err != nil {
-			rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
-			c.JSON(http.StatusBadRequest, rec)
-			return
-		}
-		// set custom token attributes
-		duration := srvConfig.Config.Authz.TokenExpires
-		if duration > 0 {
-			tokenInfo.SetCodeExpiresIn(time.Duration(duration))
-		}
-		if rec.Scope != "" {
-			tokenInfo.SetScope(rec.Scope)
-		}
-		tmap := _oauthServer.GetTokenData(tokenInfo)
-	*/
-
 	tmap, err := tokenMap(rec.User, rec.Scope, "kerberos", "Authz")
+	log.Println("token map", tmap, err)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, err)
 		return
@@ -269,46 +169,6 @@ func KAuthHandler(c *gin.Context) {
 	// get http request/writer
 	w := c.Writer
 	r := c.Request
-
-	/*
-		// if in test mode or do not use keytab
-		if srvConfig.Config.Kerberos.Keytab == "" || srvConfig.Config.Authz.TestMode {
-			// TODO: get user from cookie
-			user := "bla"
-			gt, treq, err := validToken(c, user, "read")
-			if err != nil {
-				msg := "wrong user credentials"
-				handleError(c, msg, err)
-				return
-			}
-			tokenInfo, err := _oauthServer.GetAccessToken(c, gt, treq)
-			if err != nil {
-				msg := "wrong access token"
-				handleError(c, msg, err)
-				return
-			}
-			// set custom token attributes
-			duration := srvConfig.Config.Authz.TokenExpires
-			if duration > 0 {
-				tokenInfo.SetCodeExpiresIn(time.Duration(duration))
-			}
-			tmap := _oauthServer.GetTokenData(tokenInfo)
-			data, err := json.MarshalIndent(tmap, "", "  ")
-			if err != nil {
-				msg := "fail to marshal token map"
-				handleError(c, msg, err)
-				return
-			}
-
-			tmpl := server.MakeTmpl(StaticFs, "Success")
-			tmpl["Content"] = fmt.Sprintf("<br/>Generated token:<br/><pre>%s</pre>", string(data))
-			page := server.TmplPage(StaticFs, "success.tmpl", tmpl)
-			top := server.TmplPage(StaticFs, "top.tmpl", tmpl)
-			bottom := server.TmplPage(StaticFs, "bottom.tmpl", tmpl)
-			w.Write([]byte(top + page + bottom))
-			return
-		}
-	*/
 
 	// First, we need to get the value of the `code` query param
 	err := r.ParseForm()

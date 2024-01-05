@@ -9,14 +9,7 @@ import (
 	srvConfig "github.com/CHESSComputing/golib/config"
 	srvServer "github.com/CHESSComputing/golib/server"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
 	"gorm.io/gorm"
-
-	"github.com/go-oauth2/oauth2/v4/generates"
-	"github.com/go-oauth2/oauth2/v4/manage"
-	"github.com/go-oauth2/oauth2/v4/models"
-	"github.com/go-oauth2/oauth2/v4/server"
-	"github.com/go-oauth2/oauth2/v4/store"
 
 	// kerberos auth
 	"gopkg.in/jcmturner/gokrb5.v7/keytab"
@@ -28,8 +21,6 @@ import (
 
 // _DB defines gorm DB pointer
 var _DB *gorm.DB
-
-var _oauthServer *server.Server
 
 // helper function to define our login handler
 func loginHandler() gin.HandlerFunc {
@@ -72,30 +63,6 @@ func Server() {
 	}
 	_DB = db
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
-	// setup oauth parts
-	manager := manage.NewDefaultManager()
-	manager.SetAuthorizeCodeTokenCfg(manage.DefaultAuthorizeCodeTokenCfg)
-
-	// token store
-	manager.MustTokenStorage(store.NewMemoryTokenStore())
-
-	// generate jwt access token
-	manager.MapAccessGenerate(
-		generates.NewJWTAccessGenerate(
-			"", []byte(srvConfig.Config.Authz.ClientID), jwt.SigningMethodHS512))
-	//     manager.MapAccessGenerate(generates.NewAccessGenerate())
-
-	clientStore := store.NewClientStore()
-	clientStore.Set(srvConfig.Config.Authz.ClientID, &models.Client{
-		ID:     srvConfig.Config.Authz.ClientID,
-		Secret: srvConfig.Config.Authz.ClientSecret,
-		Domain: srvConfig.Config.Authz.Domain,
-	})
-	manager.MapClientStorage(clientStore)
-	_oauthServer = server.NewServer(server.NewConfig(), manager)
-	_oauthServer.SetAllowGetAccessRequest(true)
-	_oauthServer.SetClientInfoHandler(server.ClientFormHandler)
 
 	r := setupRouter()
 	sport := fmt.Sprintf(":%d", srvConfig.Config.Authz.WebServer.Port)
