@@ -60,10 +60,7 @@ func setupRouter() *gin.Engine {
 		routes = append(routes,
 			srvServer.Route{Method: "GET", Path: "/", Handler: loginHandler(), Authorized: false})
 	}
-	r := srvServer.Router(routes, StaticFs, "static",
-		srvConfig.Config.Authz.WebServer.Base,
-		srvConfig.Config.Authz.WebServer.Verbose,
-	)
+	r := srvServer.Router(routes, StaticFs, "static", srvConfig.Config.Authz.WebServer)
 	return r
 }
 
