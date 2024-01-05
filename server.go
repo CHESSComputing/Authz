@@ -8,8 +8,8 @@ import (
 
 	srvConfig "github.com/CHESSComputing/golib/config"
 	srvServer "github.com/CHESSComputing/golib/server"
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 	"gorm.io/gorm"
 
 	"github.com/go-oauth2/oauth2/v4/generates"

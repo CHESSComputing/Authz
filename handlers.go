@@ -46,8 +46,10 @@ func handleError(c *gin.Context, msg string, err error) {
 }
 
 // helper function to get valid token
-func validToken(c *gin.Context, user string) (oauth2.GrantType, *oauth2.TokenGenerateRequest, error) {
+func validToken(c *gin.Context, user, scope string) (oauth2.GrantType, *oauth2.TokenGenerateRequest, error) {
 	var gt oauth2.GrantType
+	// for grant type we must use AuthorizationCode which force creation of access token with valid scope
+	//     gt = oauth2.AuthorizationCode
 	gt = oauth2.ClientCredentials
 	//     gt = oauth2.PasswordCredentials
 	duration := srvConfig.Config.Authz.TokenExpires
@@ -55,14 +57,23 @@ func validToken(c *gin.Context, user string) (oauth2.GrantType, *oauth2.TokenGen
 		ClientID:       srvConfig.Config.Authz.ClientID,
 		ClientSecret:   srvConfig.Config.Authz.ClientSecret,
 		UserID:         user,
+		Scope:          scope,
 		AccessTokenExp: time.Duration(duration),
 		Request:        c.Request,
 	}
 	return gt, tgr, nil
 }
 
-// TokenHandler provides access to GET /oauth/token end-point
 func TokenHandler(c *gin.Context) {
+	err := _oauthServer.HandleTokenRequest(c.Writer, c.Request)
+	if err != nil {
+		log.Println("ERROR: oauth server error", err)
+		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+	}
+}
+
+// VKTokenHandler provides access to GET /oauth/token end-point
+func VKTokenHandler(c *gin.Context) {
 	/*
 		err := _oauthServer.HandleTokenRequest(c.Writer, c.Request)
 		if err != nil {
@@ -204,24 +215,47 @@ func ClientAuthHandler(c *gin.Context) {
 	}
 
 	// generate in response valid token
-	gt, treq, err := validToken(c, rec.User)
+	grantType, tokenGenRequest, err := validToken(c, rec.User, rec.Scope)
+	//     grantType, tokenGenRequest, err := _oauthServer.ValidationTokenRequest(c.Request)
 	if err != nil {
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
 		c.JSON(http.StatusBadRequest, rec)
 		return
 	}
-	tokenInfo, err := _oauthServer.GetAccessToken(c, gt, treq)
-	if err != nil {
-		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
-		c.JSON(http.StatusBadRequest, rec)
-		return
-	}
-	// set custom token attributes
+	// add token attributes
+	log.Printf("grantType %+v tokenGenRequest %+v", grantType, tokenGenRequest)
+	customClaims := authz.CustomClaims{User: rec.User, Scope: rec.Scope, Kind: "kerberos", Application: "Authz"}
 	duration := srvConfig.Config.Authz.TokenExpires
-	if duration > 0 {
-		tokenInfo.SetCodeExpiresIn(time.Duration(duration))
+	if duration == 0 {
+		duration = 7200
 	}
-	tmap := _oauthServer.GetTokenData(tokenInfo)
+	tokenInfo, err := authz.JWTAccessToken(
+		srvConfig.Config.Authz.ClientID, duration, customClaims)
+	log.Printf("### token '%s' error %v", tokenInfo, err)
+
+	tmap := make(map[string]any)
+	tmap["access_token"] = tokenInfo
+	tmap["scope"] = rec.Scope
+	tmap["token_type"] = "Bearer"
+	tmap["expires_at"] = duration
+	/*
+		tokenInfo, err := _oauthServer.GetAccessToken(c, grantType, tokenGenRequest)
+		if err != nil {
+			rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
+			c.JSON(http.StatusBadRequest, rec)
+			return
+		}
+		// set custom token attributes
+		duration := srvConfig.Config.Authz.TokenExpires
+		if duration > 0 {
+			tokenInfo.SetCodeExpiresIn(time.Duration(duration))
+		}
+		if rec.Scope != "" {
+			tokenInfo.SetScope(rec.Scope)
+		}
+		tmap := _oauthServer.GetTokenData(tokenInfo)
+	*/
+	log.Println("token data", tmap)
 	c.JSON(200, tmap)
 }
 
@@ -237,7 +271,7 @@ func KAuthHandler(c *gin.Context) {
 		if srvConfig.Config.Kerberos.Keytab == "" || srvConfig.Config.Authz.TestMode {
 			// TODO: get user from cookie
 			user := "bla"
-			gt, treq, err := validToken(c, user)
+			gt, treq, err := validToken(c, user, "read")
 			if err != nil {
 				msg := "wrong user credentials"
 				handleError(c, msg, err)
