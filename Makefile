@@ -85,20 +85,7 @@ install:
 clean:
 	go clean; rm -rf pkg
 
-MONGO := $(shell ps auxww | grep mongo | egrep -v grep)
-
-mongo:
-ifndef MONGO
-	$(error "mongo process not found, please start it to proceed ...")
-endif
-
-testdb:
-	/bin/rm -f /tmp/files.db && \
-	sqlite3 /tmp/files.db < ./schemas/sqlite.sql && \
-	mkdir -p /tmp/${USER} && \
-	echo "test" > /tmp/${USER}/test.txt
-
-test : mongo testdb test_code
+test: test_code
 
 test_code:
 	go test -test.v .

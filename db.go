@@ -1,5 +1,9 @@
 package main
 
+// db module
+//
+// Copyright (c) 2023 - Valentin Kuznetsov <vkuznet@gmail.com>
+//
 import (
 	"errors"
 	"time"

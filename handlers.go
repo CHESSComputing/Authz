@@ -1,5 +1,9 @@
 package main
 
+// HTTP handlers module
+//
+// Copyright (c) 2023 - Valentin Kuznetsov <vkuznet@gmail.com>
+//
 import (
 	"embed"
 	"encoding/json"
