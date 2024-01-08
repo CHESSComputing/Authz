@@ -40,7 +40,7 @@ func setupRouter() *gin.Engine {
 
 	routes := []srvServer.Route{
 		srvServer.Route{Method: "GET", Path: "/oauth/token", Handler: TokenHandler, Authorized: false},
-		srvServer.Route{Method: "GET", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
+		//         srvServer.Route{Method: "GET", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
 		srvServer.Route{Method: "POST", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
 		srvServer.Route{Method: "POST", Path: "/oauth/authorize", Handler: ClientAuthHandler, Authorized: false},
 	}

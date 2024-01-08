@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"log"
 	"net/http"
@@ -115,8 +116,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl["Title"] = "Login"
 	tmpl["Base"] = srvConfig.Config.Frontend.WebServer.Base
 	tmpl["ServerInfo"] = srvConfig.Info()
-	top := server.TmplPage(StaticFs, "top.tmpl", tmpl)
-	bottom := server.TmplPage(StaticFs, "bottom.tmpl", tmpl)
+	top := server.TmplPage(StaticFs, "header.tmpl", tmpl)
+	bottom := server.TmplPage(StaticFs, "footer.tmpl", tmpl)
 	tmpl["StartTime"] = time.Now().Unix()
 	page := server.TmplPage(StaticFs, "login.tmpl", tmpl)
 	w.WriteHeader(http.StatusOK)
@@ -208,6 +209,28 @@ func KAuthHandler(c *gin.Context) {
 	//     s := string(byteArray[:n])
 	cookie := http.Cookie{Name: "auth-session", Value: msg, Expires: expiration}
 	http.SetCookie(w, &cookie)
+	//     w.WriteHeader(http.StatusFound)
 
-	w.WriteHeader(http.StatusFound)
+	// get user access token
+	tmap, err := tokenMap(name, "read", "kerberos", "Authz")
+	log.Println("token map", tmap, err)
+	tmpl := server.MakeTmpl(StaticFs, "Login")
+	tmpl["Base"] = srvConfig.Config.Authz.WebServer.Base
+	header := server.TmplPage(StaticFs, "header.tmpl", tmpl)
+	footer := server.TmplPage(StaticFs, "footer.tmpl", tmpl)
+	if t, ok := tmap["access_token"]; ok {
+		token := fmt.Sprintf("%v", t)
+		tmpl["AccessToken"] = token
+		claims := authz.TokenClaims(token, srvConfig.Config.Authz.ClientID)
+		data, err := json.MarshalIndent(claims, "", "   ")
+		if err == nil {
+			tmpl["TokenData"] = string(data)
+		} else {
+			log.Println("ERROR", err)
+		}
+		content := server.TmplPage(StaticFs, "token.tmpl", tmpl)
+		tmpl["Content"] = template.HTML(content)
+	}
+	content := server.TmplPage(StaticFs, "success.tmpl", tmpl)
+	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(header+content+footer))
 }
