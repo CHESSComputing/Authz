@@ -221,7 +221,14 @@ func KAuthHandler(c *gin.Context) {
 	if t, ok := tmap["access_token"]; ok {
 		token := fmt.Sprintf("%v", t)
 		tmpl["AccessToken"] = token
-		claims := authz.TokenClaims(token, srvConfig.Config.Authz.ClientID)
+		claims, err := authz.TokenClaims(token, srvConfig.Config.Authz.ClientID)
+		if err != nil {
+			log.Println("ERROR", err)
+			tmpl["Content"] = err.Error()
+			content := server.TmplPage(StaticFs, "error.tmpl", tmpl)
+			c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(header+content+footer))
+			return
+		}
 		data, err := json.MarshalIndent(claims, "", "   ")
 		if err == nil {
 			tmpl["TokenData"] = string(data)
