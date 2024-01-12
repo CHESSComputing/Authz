@@ -11,7 +11,6 @@ import (
 	"os"
 
 	srvConfig "github.com/CHESSComputing/golib/config"
-	server "github.com/CHESSComputing/golib/server"
 	srvServer "github.com/CHESSComputing/golib/server"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -57,7 +56,6 @@ func setupRouter() *gin.Engine {
 			srvServer.Route{Method: "GET", Path: "/", Handler: loginHandler(), Authorized: false})
 	}
 	r := srvServer.Router(routes, StaticFs, "static", srvConfig.Config.Authz.WebServer)
-	r.Use(server.CounterMiddleware())
 	return r
 }
 
