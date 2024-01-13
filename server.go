@@ -5,13 +5,12 @@ package main
 // Copyright (c) 2023 - Valentin Kuznetsov <vkuznet@gmail.com>
 //
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	srvConfig "github.com/CHESSComputing/golib/config"
-	srvServer "github.com/CHESSComputing/golib/server"
+	server "github.com/CHESSComputing/golib/server"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
@@ -37,11 +36,11 @@ func loginHandler() gin.HandlerFunc {
 // helper function to setup our server router
 func setupRouter() *gin.Engine {
 
-	routes := []srvServer.Route{
-		srvServer.Route{Method: "GET", Path: "/oauth/token", Handler: TokenHandler, Authorized: false},
-		//         srvServer.Route{Method: "GET", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
-		srvServer.Route{Method: "POST", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
-		srvServer.Route{Method: "POST", Path: "/oauth/authorize", Handler: ClientAuthHandler, Authorized: false},
+	routes := []server.Route{
+		server.Route{Method: "GET", Path: "/oauth/token", Handler: TokenHandler, Authorized: false},
+		//         server.Route{Method: "GET", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
+		server.Route{Method: "POST", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
+		server.Route{Method: "POST", Path: "/oauth/authorize", Handler: ClientAuthHandler, Authorized: false},
 	}
 	if srvConfig.Config.Kerberos.Keytab != "" {
 		kt, err := keytab.Load(srvConfig.Config.Kerberos.Keytab)
@@ -53,9 +52,9 @@ func setupRouter() *gin.Engine {
 		http.Handle("/", spnego.SPNEGOKRB5Authenticate(h, kt, service.Logger(l)))
 	} else {
 		routes = append(routes,
-			srvServer.Route{Method: "GET", Path: "/", Handler: loginHandler(), Authorized: false})
+			server.Route{Method: "GET", Path: "/", Handler: loginHandler(), Authorized: false})
 	}
-	r := srvServer.Router(routes, StaticFs, "static", srvConfig.Config.Authz.WebServer)
+	r := server.Router(routes, StaticFs, "static", srvConfig.Config.Authz.WebServer)
 	return r
 }
 
@@ -68,8 +67,8 @@ func Server() {
 	_DB = db
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
+	// setup web router and start the service
 	r := setupRouter()
-	sport := fmt.Sprintf(":%d", srvConfig.Config.Authz.WebServer.Port)
-	log.Printf("Start HTTP server %s", sport)
-	r.Run(sport)
+	webServer := srvConfig.Config.Authz.WebServer
+	server.StartServer(r, webServer)
 }
