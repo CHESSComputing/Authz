@@ -4,7 +4,10 @@ flags=-ldflags="-s -w"
 # flags=-ldflags="-s -w -extldflags -static"
 TAG := $(shell git tag | sed -e "s,v,," | sort -r | head -n 1)
 
-all: build
+all: golib build
+
+golib:
+	./get_golib.sh
 
 gorelease:
 	goreleaser release --snapshot --clean
