@@ -53,9 +53,6 @@ kos:
       - -trimpath
     ldflags:
       - -s -w
-    env:
-      - CGO_ENABLED=1
-    base_image: alpine
 
 archives:
   - format: tar.gz
@@ -78,9 +75,10 @@ archives:
 
 dockers:
   - image_templates:
-    - "chesscomputing/{{ .ProjectName }}/{{ .ProjectName }}:{{ .Tag }}"
-    - "chesscomputing/{{ .ProjectName }}/{{ .ProjectName }}:latest"
-    dockerfile: ./Dockerfile
+      - "chesscomputing/{{ .ProjectName }}/{{ .ProjectName }}:{{ .Tag }}"
+      - "chesscomputing/{{ .ProjectName }}/{{ .ProjectName }}:latest"
+    use: buildx
+    dockerfile: Dockerfile
     # do not push yet to repo as it requires login first
     # this will be done in CI/CD, see .github/workflows/goreleaser.yml
     skip_push: true
