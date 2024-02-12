@@ -23,19 +23,6 @@ before:
     - ./get_golib.sh
 
 builds:
-  - id: "supplementary"
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - darwin
-    binary: srv
-    flags:
-      - -trimpath
-    ldflags:
-      - -s -w
-    goarch:
-      - amd64
-      - arm64
   - id: "authz"
     env:
       - CGO_ENABLED=1
