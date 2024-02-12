@@ -21,7 +21,6 @@ before:
     - go generate ./...
     # get recent golib
     - ./get_golib.sh
-    - cat ./Dockerfile
 
 builds:
   - id: "authz"
@@ -40,20 +39,23 @@ builds:
 # use https://ko.build/ to build Go image
 # see https://github.com/goreleaser/goreleaser/blob/main/www/docs/customization/ko.md
 # and https://ko.build/
-kos:
-  - repository: ghcr.io/chesscomputing/authz
-    tags:
-      - '{{.Tag}}'
-      - '{{ if not .Prerelease }}latest{{ end }}' 
-    bare: true
-    preserve_import_paths: false
-    sbom: none
-    platforms:
-      - linux/amd64
-    flags:
-      - -trimpath
-    ldflags:
-      - -s -w
+# kos:
+#   - repository: ghcr.io/chesscomputing/authz
+#     tags:
+#       - '{{.Tag}}'
+#       - '{{ if not .Prerelease }}latest{{ end }}' 
+#     bare: true
+#     preserve_import_paths: false
+#     sbom: none
+#     platforms:
+#       - linux/amd64
+#     flags:
+#       - -trimpath
+#     ldflags:
+#       - -s -w
+#     envs:
+#       - CGO_ENABLED=1
+#     base_image: alpine
 
 archives:
   - format: tar.gz
