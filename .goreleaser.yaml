@@ -53,7 +53,7 @@ kos:
       - -trimpath
     ldflags:
       - -s -w
-    envs:
+    env:
       - CGO_ENABLED=1
     base_image: alpine
 
