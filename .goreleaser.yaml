@@ -24,12 +24,7 @@ before:
 
 builds:
   - env:
-      - >-
-        {{- if eq .Os "linux" }}
-        CGO_ENABLED=1
-        {{- else }}
-        CGO_ENABLED=0
-        {{- end }}
+      - CGO_ENABLED=0
     goos:
       - linux
       - windows
@@ -42,6 +37,11 @@ builds:
     goarch:
       - amd64
       - arm64
+    overrides:
+      - goos: linux
+        goarch: amd64
+        env:
+          - CGO_ENABLED=1
 
 # use https://ko.build/ to build Go image
 # see https://github.com/goreleaser/goreleaser/blob/main/www/docs/customization/ko.md
