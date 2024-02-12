@@ -3,7 +3,7 @@ module github.com/CHESSComputing/Authz
 go 1.22.0
 
 require (
-	github.com/CHESSComputing/golib v0.1.4
+	github.com/CHESSComputing/golib v0.1.5
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-oauth2/oauth2/v4 v4.5.2
 	gopkg.in/jcmturner/gokrb5.v7 v7.5.0
@@ -91,5 +91,3 @@ require (
 	gopkg.in/jcmturner/rpc.v1 v1.1.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/CHESSComputing/golib => ../golib
