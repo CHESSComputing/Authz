@@ -7,6 +7,7 @@ ENV WDIR=/data
 WORKDIR $WDIR
 RUN mkdir /build
 RUN git clone https://github.com/CHESSComputing/$PROJECT
+ENV CGO_ENABLED=1
 RUN cd $PROJECT && make && cp srv /build
 
 # build final image for given image
