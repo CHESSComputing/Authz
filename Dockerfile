@@ -16,6 +16,8 @@ RUN cd $PROJECT && CGO_ENABLED=1 make && cp srv /build
 FROM debian:stable-slim
 RUN mkdir -p /data
 COPY --from=go-builder /build/srv /data
+RUN ls -al /data
+RUN ldd /data/srv
 LABEL org.opencontainers.image.description="FOXDEN Authz service"
 LABEL org.opencontainers.image.source=https://github.com/chesscomputing/frontend
 LABEL org.opencontainers.image.licenses=MIT
