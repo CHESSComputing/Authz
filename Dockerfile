@@ -21,3 +21,4 @@ RUN ldd /data/srv
 LABEL org.opencontainers.image.description="FOXDEN Authz service"
 LABEL org.opencontainers.image.source=https://github.com/chesscomputing/frontend
 LABEL org.opencontainers.image.licenses=MIT
+ENTRYPOINT: ['/data/srv']
