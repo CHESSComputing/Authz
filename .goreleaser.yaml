@@ -23,10 +23,10 @@ before:
     - ./get_golib.sh
 
 builds:
-  - env:
+  - id: "supplementary"
+    env:
       - CGO_ENABLED=0
     goos:
-      - linux
       - windows
       - darwin
     binary: srv
@@ -37,11 +37,23 @@ builds:
     goarch:
       - amd64
       - arm64
-    overrides:
-      - goos: linux
-        goarch: amd64
-        env:
-          - CGO_ENABLED=1
+  - id: "authz"
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+    binary: srv
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+    goarch:
+      - amd64
+#     overrides:
+#       - goos: linux
+#         goarch: amd64
+#         env:
+#           - CGO_ENABLED=1
 
 # use https://ko.build/ to build Go image
 # see https://github.com/goreleaser/goreleaser/blob/main/www/docs/customization/ko.md
