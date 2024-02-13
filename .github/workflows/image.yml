@@ -7,7 +7,7 @@ on:
 
 # permissions: write-all
 permissions:
-  pull-request: write
+  pull-requests: write
 
 jobs:
 
