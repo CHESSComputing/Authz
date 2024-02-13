@@ -5,9 +5,9 @@ on:
     tags:
       - "v*" # triggers only if push new tag version, like `0.8.4` or else
 
-# permissions: write-all
-permissions:
-  pull-requests: write
+permissions: write-all
+# permissions:
+#   pull-requests: write
 
 jobs:
 
