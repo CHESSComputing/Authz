@@ -47,7 +47,8 @@ jobs:
       env:
         GOPATH: /home/runner/go
       run: |
-        make
+        make build_all
+        tar cvfz authz.tar.gz srv*
 
     - name: Create Release
       id: create_release
@@ -67,8 +68,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./srv
-        asset_name: srv
+        asset_path: ./authz.tar.gz
+        asset_name: auth.tar.gz
         asset_content_type: application/octet-stream
 
     - name: Set up QEMU
@@ -80,6 +81,10 @@ jobs:
     - name: Build image
       run: |
         make golib
+        # use multi-stage build to run on mac ARM:
+        # https://stackoverflow.com/questions/71000707/docker-get-started-warning-the-requested-images-platform-linux-arm64-v8-doe
+        # https://github.com/docker/for-mac/issues/6356
+        # https://docs.docker.com/build/ci/github-actions/multi-platform/
         docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/chesscomputing/authz:${{ steps.branch_name.outputs.SOURCE_TAG }} .
 
     - name: Login to ghcr.io registry
