@@ -21,7 +21,7 @@ ifdef TAG
 	sed -i -e "s,$(TAG),{{VERSION}},g" main.go
 endif
 
-build_all: build_darwin_amd64 build_darwin_arm64 build_amd64 build_arm64 build_power8 build_windows
+build_all: golib build_darwin_amd64 build_darwin_arm64 build_amd64 build_arm64 build_power8 build_windows
 
 build_darwin_amd64:
 ifdef TAG
@@ -47,7 +47,7 @@ build_amd64:
 ifdef TAG
 	sed -i -e "s,{{VERSION}},$(TAG),g" main.go
 endif
-	go clean; rm -rf pkg srv_linux; GOOS=linux go build -o srv ${flags}
+	go clean; rm -rf pkg srv_linux; CGO_ENABLED=1 GOOS=linux go build -o srv ${flags}
 	mv srv srv_amd64
 ifdef TAG
 	sed -i -e "s,$(TAG),{{VERSION}},g" main.go
