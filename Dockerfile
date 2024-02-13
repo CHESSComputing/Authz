@@ -19,4 +19,3 @@ COPY --from=go-builder /build/srv /data
 LABEL org.opencontainers.image.description="FOXDEN Authz service"
 LABEL org.opencontainers.image.source=https://github.com/chesscomputing/frontend
 LABEL org.opencontainers.image.licenses=MIT
-# ENTRYPOINT ["/data/srv"]

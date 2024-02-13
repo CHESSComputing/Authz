@@ -67,7 +67,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./authz.tar.gz
-        asset_name: auth.tar.gz
+        asset_name: authz.tar.gz
         asset_content_type: application/octet-stream
 
     - name: Set up QEMU
