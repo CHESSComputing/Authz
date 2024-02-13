@@ -20,14 +20,7 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
-    - name: Extract tag name
-      id: tag
-      uses: actions/github-script@0.2.0
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          return context.payload.ref.replace(/\/refs\/tags\//, '');
-
+    # https://github.com/orgs/community/discussions/26686
     - name: Branch name
       id: branch_name
       run: |
@@ -35,18 +28,16 @@ jobs:
         echo ::set-output name=SOURCE_BRANCH::${GITHUB_REF#refs/heads/}
         echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
 
-    - name: Echo
-      run: |
-        echo ${{ steps.tag.outputs.result }}
-        echo ${{ steps.branch_name.outputs.SOURCE_NAME }}
-        echo ${{ steps.branch_name.outputs.SOURCE_BRANCH }}
-        echo ${{ steps.branch_name.outputs.SOURCE_TAG }}
+#     - name: Echo
+#       run: |
+#         echo ${{ steps.branch_name.outputs.SOURCE_NAME }}
+#         echo ${{ steps.branch_name.outputs.SOURCE_BRANCH }}
+#         echo ${{ steps.branch_name.outputs.SOURCE_TAG }}
 
     - name: Build image
       run: |
         make golib
-        docker build -t ghcr.io/chesscomputing/authz:${GITHUB_REF##*/} .
-#         docker build --build-arg srv=Authz --build-arg tag=${GITHUB_REF##*/} -t ghcr.io/chesscomputing/authz ../golib/k8s
+        docker build -t ghcr.io/chesscomputing/authz:${{ steps.branch_name.outputs.SOURCE_TAG }}
 
     - name: Login to ghcr.io registry
       uses: docker/login-action@v1.6.0
@@ -61,4 +52,4 @@ jobs:
         push: true
         tags: |
           ghcr.io/chesscomputing/authz:latest
-          ghcr.io/chesscomputing/authz:${GITHUB_REF##*/}
+          ghcr.io/chesscomputing/authz:${{ steps.branch_name.outputs.SOURCE_TAG }}
