@@ -38,10 +38,43 @@ jobs:
 #         echo ${{ steps.branch_name.outputs.SOURCE_BRANCH }}
 #         echo ${{ steps.branch_name.outputs.SOURCE_TAG }}
 
+    - name: "✏️ Generate release changelog"
+      uses: heinrichreimer/action-github-changelog-generator@v2.3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build
+      env:
+        GOPATH: /home/runner/go
+      run: |
+        make
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+    - name: Upload binaries
+      id: upload_binaries
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./srv
+        asset_name: srv
+        asset_content_type: application/octet-stream
+
     - name: Build image
       run: |
         make golib
-        docker build -t ghcr.io/chesscomputing/authz:${{ steps.branch_name.outputs.SOURCE_TAG }} .
+        docker build --platform linux/amd64,linux/arm64 -t ghcr.io/chesscomputing/authz:${{ steps.branch_name.outputs.SOURCE_TAG }} .
 
     - name: Login to ghcr.io registry
       uses: docker/login-action@v1.6.0
