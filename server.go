@@ -10,6 +10,7 @@ import (
 	"os"
 
 	srvConfig "github.com/CHESSComputing/golib/config"
+	ldap "github.com/CHESSComputing/golib/ldap"
 	server "github.com/CHESSComputing/golib/server"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -24,6 +25,9 @@ import (
 
 // _DB defines gorm DB pointer
 var _DB *gorm.DB
+
+// keep ldap cache
+var ldapCache *ldap.Cache
 
 // helper function to define our login handler
 func loginHandler() gin.HandlerFunc {
@@ -66,6 +70,9 @@ func Server() {
 	}
 	_DB = db
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	// initialize ldap cache
+	ldapCache = &ldap.Cache{Map: make(map[string]ldap.Entry)}
 
 	// setup web router and start the service
 	r := setupRouter()

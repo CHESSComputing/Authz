@@ -159,6 +159,21 @@ func ClientAuthHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, rec)
 		return
 	}
+	// check LDAP group for this user
+	if srvConfig.Config.Authz.CheckLDAP {
+		entry, err := ldapCache.Search(srvConfig.Config.LDAP.Login, srvConfig.Config.LDAP.Password, rec.User)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, err)
+			return
+		}
+		if !entry.Belong(rec.Scope) {
+			msg := fmt.Sprintf("User %s with scope %s is not allowed", rec.User, rec.Scope)
+			err := errors.New(msg)
+			c.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
 	tmap, err := tokenMap(rec.User, rec.Scope, "kerberos", "Authz")
 	log.Println("token map", tmap, err)
 	if err != nil {
