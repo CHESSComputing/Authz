@@ -164,7 +164,8 @@ func ClientAuthHandler(c *gin.Context) {
 	if srvConfig.Config.Authz.CheckLDAP {
 		entry, err := ldapCache.Search(srvConfig.Config.LDAP.Login, srvConfig.Config.LDAP.Password, rec.User)
 		if err != nil {
-			rec := services.Response("Authz", http.StatusBadRequest, services.LDAPSearchError, err)
+			msg := fmt.Sprintf("No LDAP entry, error: %v", err)
+			rec := services.Response("Authz", http.StatusBadRequest, services.LDAPSearchError, errors.New(msg))
 			c.JSON(http.StatusBadRequest, rec)
 			return
 		}
@@ -176,8 +177,7 @@ func ClientAuthHandler(c *gin.Context) {
 		}
 		if group != "" && !entry.Belong(group) {
 			msg := fmt.Sprintf("User %s with scope %s is not allowed", rec.User, rec.Scope)
-			err := errors.New(msg)
-			rec := services.Response("Authz", http.StatusBadRequest, services.LDAPGroupError, err)
+			rec := services.Response("Authz", http.StatusBadRequest, services.LDAPGroupError, errors.New(msg))
 			c.JSON(http.StatusBadRequest, rec)
 			return
 		}
