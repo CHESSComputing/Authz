@@ -97,7 +97,8 @@ func TokenHandler(c *gin.Context) {
 	tmap, err := tokenMap(user, scope, "client_credentials", "Authz")
 	log.Println("token map", tmap, err)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, err)
+		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
+		c.JSON(http.StatusBadRequest, rec)
 		return
 	}
 	c.JSON(http.StatusOK, tmap)
@@ -163,7 +164,8 @@ func ClientAuthHandler(c *gin.Context) {
 	if srvConfig.Config.Authz.CheckLDAP {
 		entry, err := ldapCache.Search(srvConfig.Config.LDAP.Login, srvConfig.Config.LDAP.Password, rec.User)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, err)
+			rec := services.Response("Authz", http.StatusBadRequest, services.LDAPSearchError, err)
+			c.JSON(http.StatusBadRequest, rec)
 			return
 		}
 		group := "" // by default all users will have right access privilege
@@ -175,7 +177,8 @@ func ClientAuthHandler(c *gin.Context) {
 		if group != "" && !entry.Belong(group) {
 			msg := fmt.Sprintf("User %s with scope %s is not allowed", rec.User, rec.Scope)
 			err := errors.New(msg)
-			c.JSON(http.StatusBadRequest, err)
+			rec := services.Response("Authz", http.StatusBadRequest, services.LDAPGroupError, err)
+			c.JSON(http.StatusBadRequest, rec)
 			return
 		}
 	}
@@ -183,7 +186,8 @@ func ClientAuthHandler(c *gin.Context) {
 	tmap, err := tokenMap(rec.User, rec.Scope, "kerberos", "Authz")
 	log.Println("token map", tmap, err)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, err)
+		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
+		c.JSON(http.StatusBadRequest, rec)
 		return
 	}
 	c.JSON(http.StatusOK, tmap)
