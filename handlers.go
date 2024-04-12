@@ -166,7 +166,13 @@ func ClientAuthHandler(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, err)
 			return
 		}
-		if !entry.Belong(rec.Scope) {
+		group := "" // by default all users will have right access privilege
+		if strings.Contains(rec.Scope, "write") {
+			group = "foxdenrw" // for write scope user must be in foxdenrw group
+		} else if strings.Contains(rec.Scope, "delete") {
+			group = "foxdenadmin" // for delete scope user must be in foxdenadmin group
+		}
+		if group != "" && !entry.Belong(group) {
 			msg := fmt.Sprintf("User %s with scope %s is not allowed", rec.User, rec.Scope)
 			err := errors.New(msg)
 			c.JSON(http.StatusBadRequest, err)
