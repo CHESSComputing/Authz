@@ -3,13 +3,13 @@ module github.com/CHESSComputing/Authz
 go 1.22.2
 
 require (
-	github.com/CHESSComputing/golib v0.2.1
+	github.com/CHESSComputing/golib v0.2.2
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-oauth2/oauth2/v4 v4.5.2
 	gopkg.in/jcmturner/gokrb5.v7 v7.5.0
 	gorm.io/driver/mysql v1.5.6
 	gorm.io/driver/sqlite v1.5.5
-	gorm.io/gorm v1.25.9
+	gorm.io/gorm v1.25.10
 )
 
 require (
