@@ -45,6 +45,7 @@ func setupRouter() *gin.Engine {
 		//         server.Route{Method: "GET", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
 		server.Route{Method: "POST", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
 		server.Route{Method: "POST", Path: "/oauth/authorize", Handler: ClientAuthHandler, Authorized: false},
+		server.Route{Method: "POST", Path: "/oauth/trusted", Handler: TrustedHandler, Authorized: false},
 	}
 	if srvConfig.Config.Kerberos.Keytab != "" {
 		kt, err := keytab.Load(srvConfig.Config.Kerberos.Keytab)

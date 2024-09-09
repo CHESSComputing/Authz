@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	srvConfig "github.com/CHESSComputing/golib/config"
 	server "github.com/CHESSComputing/golib/server"
 	services "github.com/CHESSComputing/golib/services"
+	utils "github.com/CHESSComputing/golib/utils"
 	"github.com/gin-gonic/gin"
 	oauth2 "github.com/go-oauth2/oauth2/v4"
 	credentials "gopkg.in/jcmturner/gokrb5.v7/credentials"
@@ -72,6 +74,9 @@ func validToken(c *gin.Context, user, scope string) (oauth2.GrantType, *oauth2.T
 func tokenMap(user, scope, kind, app string) (map[string]any, error) {
 	tmap := make(map[string]any)
 	customClaims := authz.CustomClaims{User: user, Scope: scope, Kind: "client_credentials", Application: "Authz"}
+	if kind != "" {
+		customClaims.Kind = kind
+	}
 	duration := srvConfig.Config.Authz.TokenExpires
 	if duration == 0 {
 		duration = 7200
@@ -184,6 +189,37 @@ func ClientAuthHandler(c *gin.Context) {
 	}
 
 	tmap, err := tokenMap(rec.User, rec.Scope, "kerberos", "Authz")
+	log.Println("token map", tmap, err)
+	if err != nil {
+		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
+		c.JSON(http.StatusBadRequest, rec)
+		return
+	}
+	c.JSON(http.StatusOK, tmap)
+}
+
+// TrustedHandler handles request for trusted client
+func TrustedHandler(c *gin.Context) {
+	r := c.Request
+	edata, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
+		c.JSON(http.StatusBadRequest, rec)
+		return
+	}
+	var t utils.TrustedClient
+	salt := "lksjdlkjdfglkjdfg" // default salt (should match foxden/cmd/auth.go)
+	if srvConfig.Config.Encryption.Secret != "" {
+		salt = srvConfig.Config.Encryption.Secret // production salt
+	}
+	t, err = t.Decrypt([]byte(edata), salt)
+	if err != nil {
+		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
+		c.JSON(http.StatusBadRequest, rec)
+		return
+	}
+	tmap, err := tokenMap(t.User, "write", "trusted_client", "Authz")
 	log.Println("token map", tmap, err)
 	if err != nil {
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
