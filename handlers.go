@@ -235,6 +235,7 @@ func TrustedHandler(c *gin.Context) {
 		}
 	}
 	if !found {
+		log.Println("ERROR: client %+v not found in trusted list", t)
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, errors.New("user not found in trusted list"))
 		c.JSON(http.StatusBadRequest, rec)
 		return
