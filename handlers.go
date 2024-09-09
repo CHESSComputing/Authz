@@ -213,9 +213,29 @@ func TrustedHandler(c *gin.Context) {
 	if srvConfig.Config.Encryption.Secret != "" {
 		salt = srvConfig.Config.Encryption.Secret // production salt
 	}
-	t, err = t.Decrypt([]byte(edata), salt)
+	err = t.Decrypt([]byte(edata), salt)
 	if err != nil {
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
+		c.JSON(http.StatusBadRequest, rec)
+		return
+	}
+	// check if user/IP/Mac are matched with our configuration
+	var found bool
+	for _, tuser := range srvConfig.Config.TrustedUsers {
+		if tuser.User == t.User {
+			for _, ip := range t.IPs {
+				if tuser.IP == ip {
+					for _, mac := range t.MACs {
+						if tuser.MAC == mac.Address {
+							found = true
+						}
+					}
+				}
+			}
+		}
+	}
+	if !found {
+		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, errors.New("user not found in trusted list"))
 		c.JSON(http.StatusBadRequest, rec)
 		return
 	}
