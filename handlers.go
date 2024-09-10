@@ -216,27 +216,38 @@ func TrustedHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, rec)
 		return
 	}
+
 	// check if user/IP/Mac are matched with our configuration
-	var found bool
+	var foundIP, foundMAC string
 	for _, tuser := range srvConfig.Config.TrustedUsers {
 		if tuser.User == t.User {
 			for _, ip := range t.IPs {
 				if tuser.IP == ip {
+					foundIP = ip
 					for _, mac := range t.MACs {
 						if tuser.MAC == mac.Address {
-							found = true
+							foundMAC = mac.Address
 						}
 					}
 				}
 			}
 		}
 	}
-	if !found {
+	if foundIP == "" || foundMAC == "" {
 		log.Printf("ERROR: client %+v not found in trusted list", t)
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, errors.New("user not found in trusted list"))
 		c.JSON(http.StatusBadRequest, rec)
 		return
 	}
+	clientIP := getIP(r)
+	// check if request comes from remote host and skip check for localhost
+	if clientIP != "::1" && foundIP != clientIP {
+		log.Printf("ERROR: client IP %s does not match with HTTP IP %s", foundIP, clientIP)
+		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, errors.New("client IP does not match with HTTP one"))
+		c.JSON(http.StatusBadRequest, rec)
+		return
+	}
+
 	tmap, err := tokenMap(t.User, "read+write", "trusted_client", "Authz")
 	log.Println("token map", tmap, err)
 	if err != nil {
