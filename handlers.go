@@ -201,6 +201,7 @@ func ClientAuthHandler(c *gin.Context) {
 // TrustedHandler handles request for trusted client
 func TrustedHandler(c *gin.Context) {
 	r := c.Request
+	log.Println("Trusted HTTP request from", getIP(r))
 	edata, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
