@@ -209,10 +209,7 @@ func TrustedHandler(c *gin.Context) {
 		return
 	}
 	var t utils.TrustedClient
-	salt := "lksjdlkjdfglkjdfg" // default salt (should match foxden/cmd/auth.go)
-	if srvConfig.Config.Encryption.Secret != "" {
-		salt = srvConfig.Config.Encryption.Secret // production salt
-	}
+	salt := authz.ReadSecret(srvConfig.Config.Encryption.Secret)
 	err = t.Decrypt([]byte(edata), salt)
 	if err != nil {
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
@@ -240,7 +237,7 @@ func TrustedHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, rec)
 		return
 	}
-	tmap, err := tokenMap(t.User, "write", "trusted_client", "Authz")
+	tmap, err := tokenMap(t.User, "read+write", "trusted_client", "Authz")
 	log.Println("token map", tmap, err)
 	if err != nil {
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
