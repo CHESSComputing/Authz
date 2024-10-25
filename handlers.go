@@ -93,6 +93,20 @@ func tokenMap(user, scope, kind, app string) (map[string]any, error) {
 	return tmap, nil
 }
 
+// AttributesHandler provides access to GET /attrs end-point
+func AttributesHandler(c *gin.Context) {
+	r := c.Request
+	user := r.URL.Query().Get("user")
+	if srvConfig.Config.Authz.CheckLDAP {
+		if entry, err := ldapCache.Search(srvConfig.Config.LDAP.Login, srvConfig.Config.LDAP.Password, user); err == nil {
+			c.JSON(http.StatusOK, entry)
+			return
+		}
+	}
+	rec := services.Response("Authz", http.StatusBadRequest, services.CredentialsError, errors.New("No user attributes"))
+	c.JSON(http.StatusBadRequest, rec)
+}
+
 // TokenHandler provides access to GET /oauth/token end-point
 func TokenHandler(c *gin.Context) {
 

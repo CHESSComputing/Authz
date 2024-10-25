@@ -42,6 +42,7 @@ func setupRouter() *gin.Engine {
 
 	routes := []server.Route{
 		server.Route{Method: "GET", Path: "/oauth/token", Handler: TokenHandler, Authorized: false},
+		server.Route{Method: "GET", Path: "/attrs", Handler: AttributesHandler, Authorized: true},
 		//         server.Route{Method: "GET", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
 		server.Route{Method: "POST", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
 		server.Route{Method: "POST", Path: "/oauth/authorize", Handler: ClientAuthHandler, Authorized: false},
