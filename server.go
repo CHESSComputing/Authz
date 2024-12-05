@@ -68,7 +68,7 @@ func setupRouter() *gin.Engine {
 // Server defines our HTTP server
 func Server() {
 	dbtype, dburi, dbowner := sqldb.ParseDBFile(srvConfig.Config.Authz.DBFile)
-	log.Println("InitDB: type=%s owner=%s", dbtype, dbowner)
+	log.Printf("InitDB: type=%s owner=%s", dbtype, dbowner)
 	db, err := sqldb.InitDB(dbtype, dburi)
 	if err != nil {
 		log.Fatal(err)
