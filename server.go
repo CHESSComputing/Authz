@@ -5,6 +5,7 @@ package main
 // Copyright (c) 2023 - Valentin Kuznetsov <vkuznet@gmail.com>
 //
 import (
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
@@ -12,8 +13,8 @@ import (
 	srvConfig "github.com/CHESSComputing/golib/config"
 	ldap "github.com/CHESSComputing/golib/ldap"
 	server "github.com/CHESSComputing/golib/server"
+	sqldb "github.com/CHESSComputing/golib/sqldb"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	// kerberos auth
 	"gopkg.in/jcmturner/gokrb5.v7/keytab"
@@ -23,8 +24,8 @@ import (
 
 // examples: https://go.dev/doc/tutorial/web-service-gin
 
-// _DB defines gorm DB pointer
-var _DB *gorm.DB
+// _DB defines sql DB pointer
+var _DB *sql.DB
 
 // keep ldap cache
 var ldapCache *ldap.Cache
@@ -66,7 +67,9 @@ func setupRouter() *gin.Engine {
 
 // Server defines our HTTP server
 func Server() {
-	db, err := initDB("sqlite")
+	dbtype, dburi, dbowner := sqldb.ParseDBFile(srvConfig.Config.Authz.DBFile)
+	log.Println("InitDB: type=%s owner=%s", dbtype, dbowner)
+	db, err := sqldb.InitDB(dbtype, dburi)
 	if err != nil {
 		log.Fatal(err)
 	}
