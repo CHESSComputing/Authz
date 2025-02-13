@@ -1,9 +1,9 @@
 module github.com/CHESSComputing/Authz
 
-go 1.23.5
+go 1.23.6
 
 require (
-	github.com/CHESSComputing/golib v0.6.7
+	github.com/CHESSComputing/golib v0.6.8
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-oauth2/oauth2/v4 v4.5.2
 	gopkg.in/jcmturner/gokrb5.v7 v7.5.0
