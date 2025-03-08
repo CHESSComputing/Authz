@@ -1,6 +1,6 @@
 module github.com/CHESSComputing/Authz
 
-go 1.24.0
+go 1.24.1
 
 require (
 	github.com/CHESSComputing/golib v0.7.3
