@@ -71,13 +71,16 @@ func validToken(c *gin.Context, user, scope string) (oauth2.GrantType, *oauth2.T
 }
 
 // helper function to generate valid token map
-func tokenMap(user, scope, kind, app string) (map[string]any, error) {
+func tokenMap(user, scope, kind, app string, expires int64) (map[string]any, error) {
 	tmap := make(map[string]any)
 	customClaims := authz.CustomClaims{User: user, Scope: scope, Kind: "client_credentials", Application: "Authz"}
 	if kind != "" {
 		customClaims.Kind = kind
 	}
 	duration := srvConfig.Config.Authz.TokenExpires
+	if expires != 0 {
+		duration = expires
+	}
 	if duration == 0 {
 		duration = 7200
 	}
@@ -113,7 +116,7 @@ func TokenHandler(c *gin.Context) {
 	r := c.Request
 	scope := r.URL.Query().Get("scope")
 	user := r.URL.Query().Get("user")
-	tmap, err := tokenMap(user, scope, "client_credentials", "Authz")
+	tmap, err := tokenMap(user, scope, "client_credentials", "Authz", 0)
 	log.Println("token map", tmap, err)
 	if err != nil {
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
@@ -202,7 +205,7 @@ func ClientAuthHandler(c *gin.Context) {
 		}
 	}
 
-	tmap, err := tokenMap(rec.User, rec.Scope, "kerberos", "Authz")
+	tmap, err := tokenMap(rec.User, rec.Scope, "kerberos", "Authz", rec.Expires)
 	log.Println("token map", tmap, err)
 	if err != nil {
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
@@ -263,7 +266,7 @@ func TrustedHandler(c *gin.Context) {
 		return
 	}
 
-	tmap, err := tokenMap(t.User, "read+write", "trusted_client", "Authz")
+	tmap, err := tokenMap(t.User, "read+write", "trusted_client", "Authz", 0)
 	log.Println("token map", tmap, err)
 	if err != nil {
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
@@ -317,7 +320,7 @@ func KAuthHandler(c *gin.Context) {
 	//     w.WriteHeader(http.StatusFound)
 
 	// get user access token
-	tmap, err := tokenMap(name, "read", "kerberos", "Authz")
+	tmap, err := tokenMap(name, "read", "kerberos", "Authz", 0)
 	log.Println("token map", tmap, err)
 	tmpl := server.MakeTmpl(StaticFs, "Login")
 	tmpl["Base"] = srvConfig.Config.Authz.WebServer.Base
