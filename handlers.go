@@ -152,6 +152,18 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 func ClientAuthHandler(c *gin.Context) {
 	r := c.Request
 
+	// in testmode we do not go through authorization process and issue token right away
+	if srvConfig.Config.Authz.TestMode {
+		tmap, err := tokenMap("testuser", "read+write", "testmode", "Authz", 3600)
+		if err != nil {
+			rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
+			c.JSON(http.StatusBadRequest, rec)
+			return
+		}
+		c.JSON(http.StatusOK, tmap)
+		return
+	}
+
 	var rec authz.Kerberos
 	defer r.Body.Close()
 	data, err := io.ReadAll(r.Body)
