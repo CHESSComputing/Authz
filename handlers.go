@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -227,11 +226,54 @@ func ClientAuthHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, tmap)
 }
 
+// TrustedClientInfo represents trusted client system info to be send to /trusted_client
+// end-point via POST HTTP request
+type TrustedClientInfo struct {
+	User string `json:"user"`
+	IP   string `json:"ip"`
+	MAC  string `json:"mac"`
+}
+
+// TrustedClientHandler perform trusted client check
+func TrustedClientHandler(c *gin.Context) {
+	r := c.Request
+	data, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		rec := services.Response("Authz", http.StatusBadRequest, services.ParametersError, err)
+		c.JSON(http.StatusBadRequest, rec)
+		return
+	}
+	var rec TrustedClientInfo
+	err = json.Unmarshal(data, &rec)
+	if err != nil {
+		rec := services.Response("Authz", http.StatusBadRequest, services.UnmarshalError, err)
+		c.JSON(http.StatusBadRequest, rec)
+		return
+	}
+	// using provided trusted client info validate that it is accepted by Authz server based on its TrustedUsers configuration
+	found := false
+	for _, tuser := range srvConfig.Config.TrustedUsers {
+		if tuser.User == rec.User && tuser.IP == rec.IP && tuser.MAC == rec.MAC {
+			found = true
+			break
+		}
+	}
+	if !found {
+		msg := "trusted client info does not match"
+		rec := services.Response("Authz", http.StatusBadRequest, services.AuthError, errors.New(msg))
+		c.JSON(http.StatusBadRequest, rec)
+		return
+	}
+	resp := services.Response("Authz", http.StatusOK, services.OK, nil)
+	c.JSON(http.StatusBadRequest, resp)
+}
+
 // TrustedHandler handles request for trusted client
 func TrustedHandler(c *gin.Context) {
 	r := c.Request
 	log.Println("Trusted HTTP request from", getIP(r))
-	edata, err := ioutil.ReadAll(r.Body)
+	edata, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
