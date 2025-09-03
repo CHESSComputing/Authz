@@ -229,9 +229,9 @@ func ClientAuthHandler(c *gin.Context) {
 // TrustedClientInfo represents trusted client system info to be send to /trusted_client
 // end-point via POST HTTP request
 type TrustedClientInfo struct {
-	User string `json:"user"`
-	IP   string `json:"ip"`
-	MAC  string `json:"mac"`
+	User string   `json:"user"`
+	IPs  []string `json:"ips"`
+	MACs []string `json:"macs"`
 }
 
 // TrustedClientHandler perform trusted client check
@@ -254,9 +254,13 @@ func TrustedClientHandler(c *gin.Context) {
 	// using provided trusted client info validate that it is accepted by Authz server based on its TrustedUsers configuration
 	found := false
 	for _, tuser := range srvConfig.Config.TrustedUsers {
-		if tuser.User == rec.User && tuser.IP == rec.IP && tuser.MAC == rec.MAC {
-			found = true
-			break
+		for _, ip := range rec.IPs {
+			for _, mac := range rec.MACs {
+				if tuser.User == rec.User && tuser.IP == ip && tuser.MAC == mac {
+					found = true
+					break
+				}
+			}
 		}
 	}
 	if !found {
