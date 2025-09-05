@@ -42,13 +42,13 @@ func loginHandler() gin.HandlerFunc {
 func setupRouter() *gin.Engine {
 
 	routes := []server.Route{
-		server.Route{Method: "GET", Path: "/oauth/token", Handler: TokenHandler, Authorized: false},
-		server.Route{Method: "GET", Path: "/attrs", Handler: AttributesHandler, Authorized: true},
-		//         server.Route{Method: "GET", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
-		server.Route{Method: "POST", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
-		server.Route{Method: "POST", Path: "/oauth/authorize", Handler: ClientAuthHandler, Authorized: false},
-		server.Route{Method: "POST", Path: "/oauth/trusted", Handler: TrustedHandler, Authorized: false},
-		server.Route{Method: "POST", Path: "/trusted_client", Handler: TrustedClientHandler, Authorized: false},
+		{Method: "GET", Path: "/oauth/token", Handler: TokenHandler, Authorized: false},
+		{Method: "GET", Path: "/attrs", Handler: AttributesHandler, Authorized: true},
+		//         {Method: "GET", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
+		{Method: "POST", Path: "/kauth", Handler: KAuthHandler, Authorized: false},
+		{Method: "POST", Path: "/oauth/authorize", Handler: ClientAuthHandler, Authorized: false},
+		{Method: "POST", Path: "/oauth/trusted", Handler: TrustedHandler, Authorized: false},
+		{Method: "POST", Path: "/trusted_client", Handler: TrustedClientHandler, Authorized: false},
 	}
 	if srvConfig.Config.Kerberos.Keytab != "" {
 		kt, err := keytab.Load(srvConfig.Config.Kerberos.Keytab)
