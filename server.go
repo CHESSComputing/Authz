@@ -13,6 +13,7 @@ import (
 	srvConfig "github.com/CHESSComputing/golib/config"
 	ldap "github.com/CHESSComputing/golib/ldap"
 	server "github.com/CHESSComputing/golib/server"
+	services "github.com/CHESSComputing/golib/services"
 	sqldb "github.com/CHESSComputing/golib/sqldb"
 	"github.com/gin-gonic/gin"
 
@@ -27,8 +28,12 @@ import (
 // _DB defines sql DB pointer
 var _DB *sql.DB
 
+// Verbose flag to use
+var Verbose int
+
 // keep ldap cache
 var ldapCache *ldap.Cache
+var _foxdenUser services.UserAttributes
 
 // helper function to define our login handler
 func loginHandler() gin.HandlerFunc {
@@ -80,8 +85,20 @@ func Server() {
 	// initialize ldap cache
 	ldapCache = &ldap.Cache{Map: make(map[string]ldap.Entry)}
 
+	// make a choice of foxden user
+	switch srvConfig.Config.CHESSMetaData.FoxdenUser.User {
+	case "Maglab":
+		_foxdenUser = &services.MaglabUser{}
+	case "CHESS":
+		_foxdenUser = &services.CHESSUser{}
+	default:
+		_foxdenUser = &services.CHESSUser{}
+	}
+	_foxdenUser.Init()
+
 	// setup web router and start the service
 	r := setupRouter()
 	webServer := srvConfig.Config.Authz.WebServer
+	Verbose = webServer.Verbose
 	server.StartServer(r, webServer)
 }
