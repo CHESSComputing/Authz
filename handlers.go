@@ -72,7 +72,11 @@ func validToken(c *gin.Context, user, scope string) (oauth2.GrantType, *oauth2.T
 // helper function to generate valid token map
 func tokenMap(user, scope, kind, app string, expires int64) (map[string]any, error) {
 	tmap := make(map[string]any)
-	customClaims := authz.CustomClaims{User: user, Scope: scope, Kind: "client_credentials", Application: "Authz"}
+	customClaims := authz.CustomClaims{
+		User:        user,
+		Scope:       scope,
+		Kind:        "client_credentials",
+		Application: "Authz"}
 	if kind != "" {
 		customClaims.Kind = kind
 	}
@@ -82,6 +86,11 @@ func tokenMap(user, scope, kind, app string, expires int64) (map[string]any, err
 	}
 	if duration == 0 {
 		duration = 7200
+	}
+	if fuser, err := _foxdenUser.Get(user); err == nil {
+		customClaims.Btrs = fuser.Btrs
+		customClaims.Groups = fuser.Groups
+		customClaims.Scopes = fuser.Scopes
 	}
 	accessToken, err := authz.JWTAccessToken(
 		srvConfig.Config.Authz.ClientID, duration, customClaims)
@@ -99,11 +108,9 @@ func tokenMap(user, scope, kind, app string, expires int64) (map[string]any, err
 func AttributesHandler(c *gin.Context) {
 	r := c.Request
 	user := r.URL.Query().Get("user")
-	if srvConfig.Config.Authz.CheckLDAP {
-		if entry, err := ldapCache.Search(srvConfig.Config.LDAP.Login, srvConfig.Config.LDAP.Password, user); err == nil {
-			c.JSON(http.StatusOK, entry)
-			return
-		}
+	if fuser, err := _foxdenUser.Get(user); err == nil {
+		c.JSON(http.StatusOK, fuser)
+		return
 	}
 	rec := services.Response("Authz", http.StatusBadRequest, services.CredentialsError, errors.New("No user attributes"))
 	c.JSON(http.StatusBadRequest, rec)
@@ -116,7 +123,9 @@ func TokenHandler(c *gin.Context) {
 	scope := r.URL.Query().Get("scope")
 	user := r.URL.Query().Get("user")
 	tmap, err := tokenMap(user, scope, "client_credentials", "Authz", 0)
-	log.Println("token map", tmap, err)
+	if Verbose > 2 {
+		log.Println("token map", tmap, err)
+	}
 	if err != nil {
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
 		c.JSON(http.StatusBadRequest, rec)
@@ -193,31 +202,55 @@ func ClientAuthHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, rec)
 		return
 	}
-	// check LDAP group for this user
-	if srvConfig.Config.Authz.CheckLDAP {
-		entry, err := ldapCache.Search(srvConfig.Config.LDAP.Login, srvConfig.Config.LDAP.Password, rec.User)
-		if err != nil {
-			msg := fmt.Sprintf("No LDAP entry, error: %v", err)
-			rec := services.Response("Authz", http.StatusBadRequest, services.LDAPSearchError, errors.New(msg))
-			c.JSON(http.StatusBadRequest, rec)
-			return
+	/*
+		// check LDAP group for this user
+		if srvConfig.Config.Authz.CheckLDAP {
+			entry, err := ldapCache.Search(srvConfig.Config.LDAP.Login, srvConfig.Config.LDAP.Password, rec.User)
+			if err != nil {
+				msg := fmt.Sprintf("No LDAP entry, error: %v", err)
+				rec := services.Response("Authz", http.StatusBadRequest, services.LDAPSearchError, errors.New(msg))
+				c.JSON(http.StatusBadRequest, rec)
+				return
+			}
+			group := "" // by default all users will have right access privilege
+			if strings.Contains(rec.Scope, "write") {
+				group = "foxdenrw" // for write scope user must be in foxdenrw group
+			} else if strings.Contains(rec.Scope, "delete") {
+				group = "foxdenadmin" // for delete scope user must be in foxdenadmin group
+			}
+			if group != "" && !entry.Belong(group) {
+				msg := fmt.Sprintf("User %s with scope %s is not allowed", rec.User, rec.Scope)
+				rec := services.Response("Authz", http.StatusBadRequest, services.LDAPGroupError, errors.New(msg))
+				c.JSON(http.StatusBadRequest, rec)
+				return
+			}
 		}
+	*/
+	// check user privileges
+	if fuser, err := _foxdenUser.Get(rec.User); err == nil {
 		group := "" // by default all users will have right access privilege
 		if strings.Contains(rec.Scope, "write") {
 			group = "foxdenrw" // for write scope user must be in foxdenrw group
 		} else if strings.Contains(rec.Scope, "delete") {
 			group = "foxdenadmin" // for delete scope user must be in foxdenadmin group
 		}
-		if group != "" && !entry.Belong(group) {
-			msg := fmt.Sprintf("User %s with scope %s is not allowed", rec.User, rec.Scope)
+		if group != "" && !utils.InList(group, fuser.Groups) {
+			msg := fmt.Sprintf("User %s with scope %s is not allowed, user btrs=%+v groups=%+v", rec.User, rec.Scope, fuser.Btrs, fuser.Groups)
 			rec := services.Response("Authz", http.StatusBadRequest, services.LDAPGroupError, errors.New(msg))
 			c.JSON(http.StatusBadRequest, rec)
 			return
 		}
+	} else {
+		msg := fmt.Sprintf("No foxden user found, error: %v", err)
+		rec := services.Response("Authz", http.StatusBadRequest, services.LDAPSearchError, errors.New(msg))
+		c.JSON(http.StatusBadRequest, rec)
+		return
 	}
 
 	tmap, err := tokenMap(rec.User, rec.Scope, "kerberos", "Authz", rec.Expires)
-	log.Println("token map", tmap, err)
+	if Verbose > 2 {
+		log.Println("token map", tmap, err)
+	}
 	if err != nil {
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
 		c.JSON(http.StatusBadRequest, rec)
@@ -276,7 +309,9 @@ func TrustedClientHandler(c *gin.Context) {
 // TrustedHandler handles request for trusted client
 func TrustedHandler(c *gin.Context) {
 	r := c.Request
-	log.Println("Trusted HTTP request from", getIP(r))
+	if Verbose > 0 {
+		log.Println("Trusted HTTP request from", getIP(r))
+	}
 	edata, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
@@ -325,7 +360,9 @@ func TrustedHandler(c *gin.Context) {
 	}
 
 	tmap, err := tokenMap(t.User, "read+write", "trusted_client", "Authz", 0)
-	log.Println("token map", tmap, err)
+	if Verbose > 2 {
+		log.Println("token map", tmap, err)
+	}
 	if err != nil {
 		rec := services.Response("Authz", http.StatusBadRequest, services.TokenError, err)
 		c.JSON(http.StatusBadRequest, rec)
@@ -379,7 +416,9 @@ func KAuthHandler(c *gin.Context) {
 
 	// get user access token
 	tmap, err := tokenMap(name, "read", "kerberos", "Authz", 0)
-	log.Println("token map", tmap, err)
+	if Verbose > 2 {
+		log.Println("token map", tmap, err)
+	}
 	tmpl := server.MakeTmpl(StaticFs, "Login")
 	tmpl["Base"] = srvConfig.Config.Authz.WebServer.Base
 	header := server.TmplPage(StaticFs, "header.tmpl", tmpl)
