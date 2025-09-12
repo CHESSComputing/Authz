@@ -87,10 +87,14 @@ func tokenMap(user, scope, kind, app string, expires int64) (map[string]any, err
 	if duration == 0 {
 		duration = 7200
 	}
-	if fuser, err := _foxdenUser.Get(user); err == nil {
-		customClaims.Btrs = fuser.Btrs
-		customClaims.Groups = fuser.Groups
-		customClaims.Scopes = fuser.Scopes
+	// service_user is set when we perform inter-service requests between FOXDEN servies
+	if user != "" && user != "service_user" && kind != "trusted_client" {
+		// only check user attributes if user name is provided
+		if fuser, err := _foxdenUser.Get(user); err == nil {
+			customClaims.Btrs = fuser.Btrs
+			customClaims.Groups = fuser.Groups
+			customClaims.Scopes = fuser.Scopes
+		}
 	}
 	accessToken, err := authz.JWTAccessToken(
 		srvConfig.Config.Authz.ClientID, duration, customClaims)
@@ -100,7 +104,7 @@ func tokenMap(user, scope, kind, app string, expires int64) (map[string]any, err
 	tmap["access_token"] = accessToken
 	tmap["scope"] = scope
 	tmap["token_type"] = "Bearer"
-	tmap["expires_at"] = duration
+	tmap["expires_in"] = duration
 	return tmap, nil
 }
 
@@ -122,6 +126,11 @@ func TokenHandler(c *gin.Context) {
 	r := c.Request
 	scope := r.URL.Query().Get("scope")
 	user := r.URL.Query().Get("user")
+	clientId := r.URL.Query().Get("client_id")
+	clientSecret := r.URL.Query().Get("client_secret")
+	if user == "" && clientId == srvConfig.Config.Authz.ClientID && clientSecret == srvConfig.Config.Authz.ClientSecret {
+		user = "service_user"
+	}
 	tmap, err := tokenMap(user, scope, "client_credentials", "Authz", 0)
 	if Verbose > 2 {
 		log.Println("token map", tmap, err)
