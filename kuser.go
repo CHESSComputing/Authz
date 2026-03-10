@@ -22,7 +22,7 @@ func username(r *http.Request) (string, error) {
 	}
 	cookie, err := r.Cookie("auth-session")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("[Authz.main.username] r.Cookie error: %w", err)
 	}
 
 	//     byteArray := decrypt([]byte(cookie.Value), Config.StoreSecret)
@@ -48,7 +48,7 @@ func kuserFromCache(cacheFile string) (*credentials.Credentials, error) {
 	client, err := client.NewClientFromCCache(ccache, cfg)
 	err = client.Login()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[Authz.main.kuserFromCache] client.Login error: %w", err)
 	}
 	return client.Credentials, nil
 

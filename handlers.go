@@ -99,7 +99,7 @@ func tokenMap(user, scope, kind, app string, expires int64) (map[string]any, err
 	accessToken, err := authz.JWTAccessToken(
 		srvConfig.Config.Authz.ClientID, duration, customClaims)
 	if err != nil {
-		return tmap, err
+		return tmap, fmt.Errorf("[Authz.main.tokenMap] authz.JWTAccessToken error: %w", err)
 	}
 	tmap["access_token"] = accessToken
 	tmap["scope"] = scope
