@@ -45,7 +45,7 @@ func getUser(db *sql.DB, login string) (User, error) {
 		return user, errors.New(msg)
 	} else if err != nil {
 		log.Println("ERROR: failed to query user:", err)
-		return user, err
+		return user, fmt.Errorf("[Authz.main.getUser] row.Scan error: %w", err)
 	}
 
 	log.Printf("INFO: query user with login '%s', result %+v", login, user)
@@ -62,13 +62,13 @@ func createUser(db *sql.DB, user User) (uint, error) {
 	result, err := db.Exec(query, user.LOGIN, user.FIRST_NAME, user.LAST_NAME, user.PASSWORD, user.EMAIL, now, now)
 	if err != nil {
 		log.Println("ERROR: failed to create user:", err)
-		return 0, err
+		return 0, fmt.Errorf("[Authz.main.createUser] db.Exec error: %w", err)
 	}
 
 	id, err := result.LastInsertId()
 	if err != nil {
 		log.Println("ERROR: failed to retrieve last insert ID:", err)
-		return 0, err
+		return 0, fmt.Errorf("[Authz.main.createUser] result.LastInsertId error: %w", err)
 	}
 
 	log.Printf("INFO: created user with ID %d", id)

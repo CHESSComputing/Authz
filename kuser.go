@@ -6,6 +6,7 @@ package main
 //
 
 import (
+	"fmt"
 	"log"
 
 	srvConfig "github.com/CHESSComputing/golib/config"
@@ -60,13 +61,13 @@ func kuser(user, password string) (*credentials.Credentials, error) {
 	cfg, err := config.Load(srvConfig.Config.Kerberos.Krb5Conf)
 	if err != nil {
 		log.Printf("reading krb5.conf failes, error %v\n", err)
-		return nil, err
+		return nil, fmt.Errorf("[Authz.main.kuser] config.Load error: %w", err)
 	}
 	client := client.NewClientWithPassword(user, srvConfig.Config.Kerberos.Realm, password, cfg, client.DisablePAFXFAST(true))
 	err = client.Login()
 	if err != nil {
 		log.Printf("client login fails, error %v\n", err)
-		return nil, err
+		return nil, fmt.Errorf("[Authz.main.kuser] client.Login error: %w", err)
 	}
 	return client.Credentials, nil
 }
@@ -75,7 +76,7 @@ func kuser(user, password string) (*credentials.Credentials, error) {
 // authentication function
 func auth(r *http.Request) error {
 	_, err := username(r)
-	return err
+	return fmt.Errorf("[Authz.main.auth] username error: %w", err)
 }
 
 // helper function to check user credentials for POST requests
