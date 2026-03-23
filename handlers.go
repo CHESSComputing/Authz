@@ -70,42 +70,33 @@ func validToken(c *gin.Context, user, scope string) (oauth2.GrantType, *oauth2.T
 }
 
 // helper function to generate valid token map
-func tokenMap(user, scope, kind, app string, expires int64) (map[string]any, error) {
-	tmap := make(map[string]any)
-	customClaims := authz.CustomClaims{
-		User:        user,
-		Scope:       scope,
-		Kind:        "client_credentials",
-		Application: "Authz"}
+func tokenMap(user, scope, kind, app string, expires int64) (authz.TokenMap, error) {
+	auser := authz.AuthUser{
+		Name:  user,
+		Scope: scope,
+		Kind:  "client_credentials",
+		App:   "Authz service",
+	}
 	if kind != "" {
-		customClaims.Kind = kind
+		auser.Kind = kind
 	}
 	duration := srvConfig.Config.Authz.TokenExpires
 	if expires != 0 {
-		duration = expires
+		auser.Expires = expires
 	}
 	if duration == 0 {
-		duration = 7200
+		auser.Expires = 7200
 	}
 	// service_user is set when we perform inter-service requests between FOXDEN servies
 	if user != "" && user != "service_user" && kind != "trusted_client" {
 		// only check user attributes if user name is provided
 		if fuser, err := _foxdenUser.Get(user); err == nil {
-			customClaims.Btrs = fuser.Btrs
-			customClaims.Groups = fuser.Groups
-			customClaims.Scopes = fuser.Scopes
+			auser.Btrs = fuser.Btrs
+			auser.Groups = fuser.Groups
+			auser.Scopes = fuser.Scopes
 		}
 	}
-	accessToken, err := authz.JWTAccessToken(
-		srvConfig.Config.Authz.ClientID, duration, customClaims)
-	if err != nil {
-		return tmap, fmt.Errorf("[Authz.main.tokenMap] authz.JWTAccessToken error: %w", err)
-	}
-	tmap["access_token"] = accessToken
-	tmap["scope"] = scope
-	tmap["token_type"] = "Bearer"
-	tmap["expires_in"] = duration
-	return tmap, nil
+	return auser.TokenMap()
 }
 
 // AttributesHandler provides access to GET /attrs end-point
@@ -432,8 +423,8 @@ func KAuthHandler(c *gin.Context) {
 	tmpl["Base"] = srvConfig.Config.Authz.WebServer.Base
 	header := server.TmplPage(StaticFs, "header.tmpl", tmpl)
 	footer := server.TmplPage(StaticFs, "footer.tmpl", tmpl)
-	if t, ok := tmap["access_token"]; ok {
-		token := fmt.Sprintf("%v", t)
+	if tmap.AccessToken != "" {
+		token := tmap.AccessToken
 		tmpl["AccessToken"] = token
 		claims, err := authz.TokenClaims(token, srvConfig.Config.Authz.ClientID)
 		if err != nil {
