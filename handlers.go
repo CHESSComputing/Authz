@@ -214,9 +214,9 @@ func ClientAuthHandler(c *gin.Context) {
 			}
 			group := "" // by default all users will have right access privilege
 			if strings.Contains(rec.Scope, "write") {
-				group = "foxdenrw" // for write scope user must be in foxdenrw group
+				group = srvConfig.Config.AccessRules.WriteGroup
 			} else if strings.Contains(rec.Scope, "delete") {
-				group = "foxdenadmin" // for delete scope user must be in foxdenadmin group
+				group = srvConfig.Config.AccessRules.AdminGroup
 			}
 			if group != "" && !entry.Belong(group) {
 				msg := fmt.Sprintf("User %s with scope %s is not allowed", rec.User, rec.Scope)
@@ -230,9 +230,9 @@ func ClientAuthHandler(c *gin.Context) {
 	if fuser, err := _foxdenUser.Get(rec.User); err == nil {
 		group := "" // by default all users will have right access privilege
 		if strings.Contains(rec.Scope, "write") {
-			group = "foxdenrw" // for write scope user must be in foxdenrw group
+			group = srvConfig.Config.AccessRules.WriteGroup
 		} else if strings.Contains(rec.Scope, "delete") {
-			group = "foxdenadmin" // for delete scope user must be in foxdenadmin group
+			group = srvConfig.Config.AccessRules.AdminGroup
 		}
 		if group != "" && !utils.InList(group, fuser.Groups) {
 			msg := fmt.Sprintf("User %s with scope %s is not allowed, user btrs=%+v groups=%+v", rec.User, rec.Scope, fuser.Btrs, fuser.Groups)
