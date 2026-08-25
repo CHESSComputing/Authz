@@ -9,18 +9,16 @@ to the dedicated `/oauth/trusted` endpoint.
 
 ## Payload Structure
 
-Create a JSON object containing user identification and device fingerprinting data:
+To communicate with `/oauth/trusted` end-point user must provide the following
+encrypted payload. It represents user identification and device fingerprinting data:
 
 ```json
 {
   "user": "username",
   "ip_address": ["192.168.1.100", "10.0.0.5"],
-  "mac_address": ["00:1A:2B:3C:4D:5E"]
+  "mac_address": [{"name": "node1", "address": "aa:bb:xx:yy:zz"}, ...]
 }
 ```
-
-Field Requirements
-FieldTypeDescriptionuserstringUsername or principal identifierip_addressarray[string]List of authorized IP addresses (can be multiple)mac_addressarray[string]List of MAC addresses for device binding
 
 ### Step-by-Step Flow
 
@@ -31,7 +29,7 @@ Use the [enc](https://github.com/CHESSComputing/gotools/tree/main/enc) utility f
 
 ```
 # write encrypted content to provide file
-enc -cipher aes -entry '{"user":"joe","ip_addresses":["192.168.1.100"],"mac_addresses":[{"name": "node1", "address": "cc:08:aa:bb:ff:cc"}]}' -secret bla -action encrypt -fout /tmp/file.bin
+enc -cipher aes -entry '{"user":"joe", "ip_addresses":["192.168.1.100"], "mac_addresses":[{"name": "node1", "address": "aa:bb:xx:yy:zz"}]}' -secret bla -action encrypt -fout /tmp/file.bin
 ```
 
 3. Send to /oauth/trusted Endpoint
