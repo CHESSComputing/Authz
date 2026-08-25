@@ -7,8 +7,6 @@ to the dedicated `/oauth/trusted` endpoint.
 
 ---
 
-## Payload Structure
-
 To communicate with `/oauth/trusted` end-point user must provide the following
 encrypted payload. It represents user identification and device fingerprinting data:
 
