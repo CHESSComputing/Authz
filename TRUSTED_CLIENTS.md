@@ -20,19 +20,19 @@ encrypted payload. It represents user identification and device fingerprinting d
 }
 ```
 
-### Step-by-Step Flow
+Then, follow these steps:
 
 1. ssh to the trusted node and obtain its IP and mac addresses
 
-2. Encrypt the Payload
-Use the [enc](https://github.com/CHESSComputing/gotools/tree/main/enc) utility from gotools:
+2. Encrypt the JSON payload (shown above with your values):
+Please use the [enc](https://github.com/CHESSComputing/gotools/tree/main/enc) utility from gotools:
 
 ```
 # write encrypted content to provide file
 enc -cipher aes -entry '{"user":"joe", "ip_addresses":["192.168.1.100"], "mac_addresses":[{"name": "node1", "address": "aa:bb:xx:yy:zz"}]}' -secret bla -action encrypt -fout /tmp/file.bin
 ```
 
-3. Send to /oauth/trusted Endpoint
+3. Send HTTP request to /oauth/trusted end-point
 
 ```
 curl -X POST \
@@ -53,18 +53,8 @@ Expected response:{
 }
 ```
 
-### Error Handling
-
-| HTTP Status | Meaning |
-|-------------|---------|
-| 200 | Token issued successfully |
-| 400 | Invalid payload or decryption failure |
-| 401 | User not authorized or credentials invalid | 
-| 403 | Trusted client not registered |
-| 500 | Internal server error |
-
-
-Complete example using `foxden` CLI
+Or, you may use `foxden` CLI to perform all of these actions for you on a
+trusted nodes, e.g.
 
 ```
 # request a token with read and write scope
@@ -82,10 +72,3 @@ Groups       :  []
 Scopes       :  []
 ExpiresAt    :  2026-08-25 11:45:21 -0400 EDT
 ```
-
-### Security Notes
-
-- Encryption Key Management: Store encryption keys securely (not in code)
-- HTTPS Only: Always use TLS for communication with the Authz server
-- Device Binding: The ip_address and mac_address fields enable device fingerprinting—ensure they accurately represent authorized clients
-- Token Expiration: Monitor `expires_in` and implement token refresh logic
