@@ -5,16 +5,14 @@ repository) provides authentication and authorization capabilities. Trusted
 clients can obtain OAuth tokens by submitting encrypted device-binding payloads
 to the dedicated `/oauth/trusted` endpoint.
 
----
-
 To communicate with `/oauth/trusted` end-point user must provide the following
 encrypted payload. It represents user identification and device fingerprinting data:
 
 ```json
 {
   "user": "username",
-  "ip_address": ["192.168.1.100", "10.0.0.5"],
-  "mac_address": [{"name": "node1", "address": "aa:bb:xx:yy:zz"}, ...]
+  "ip_addresses": ["192.168.1.100", "10.0.0.5"],
+  "mac_addresses": [{"name": "node1", "address": "aa:bb:xx:yy:zz"}, ...]
 }
 ```
 
