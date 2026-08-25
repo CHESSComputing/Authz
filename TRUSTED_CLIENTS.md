@@ -27,6 +27,8 @@ Please use the [enc](https://github.com/CHESSComputing/gotools/tree/main/enc) ut
 
 ```
 # write encrypted content to provide file
+# on CHESS nodes it is located in /nfs/chess/sw/chessdata/enc
+
 enc -cipher aes -entry '{"user":"joe", "ip_addresses":["192.168.1.100"], "mac_addresses":[{"name": "node1", "address": "aa:bb:xx:yy:zz"}]}' -secret bla -action encrypt -fout /tmp/file.bin
 ```
 
