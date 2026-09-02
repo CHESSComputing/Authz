@@ -1,11 +1,13 @@
 module github.com/CHESSComputing/Authz
 
-go 1.26.4
+go 1.27.1
+
+replace github.com/CHESSComputing/golib => ../golib
 
 require (
-	github.com/CHESSComputing/golib v1.3.4
+	github.com/CHESSComputing/golib v1.3.5
 	github.com/gin-gonic/gin v1.12.0
-	github.com/go-oauth2/oauth2/v4 v4.5.4
+	github.com/go-oauth2/oauth2/v4 v4.6.0
 	gopkg.in/jcmturner/gokrb5.v7 v7.5.0
 )
 
@@ -115,5 +117,3 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/sqlite v1.47.0 // indirect
 )
-
-replace github.com/CHESSComputing/golib => ../golib
