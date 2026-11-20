@@ -21,3 +21,6 @@ cat record.json
 curl -X POST -H "Content-type: application/json" \
     -d./record.json http://localhost:8380/oath/authorize
 ```
+
+### Trusted clients
+Please refer to [TRUSTED_CLIENTS.md](docs/TRUSTED_CLIENTS.md) documentation
